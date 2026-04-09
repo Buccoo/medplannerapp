@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, TrendingUp, ChevronDown, ChevronUp, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,9 @@ type CycleTargets = {
 type Product = {
   id: number;
   name: string;
-  cycles: CycleTargets[]; // 4 cycles: Gen-Mar, Apr-Giu, Lug-Set, Ott-Dic
+  cycles: CycleTargets[];
   sold: number;
+  companyForecast: number; // totale previsto dall'azienda
 };
 
 const cycleLabels = [
@@ -29,15 +30,15 @@ const cycleLabels = [
 ];
 
 const initial: Product[] = [
-  { id: 1, name: "CardioX 100mg", cycles: [{ month1: 40, month2: 40, month3: 40 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 95 },
-  { id: 2, name: "NeuroFlex 50mg", cycles: [{ month1: 25, month2: 25, month3: 30 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 62 },
-  { id: 3, name: "GastroPro 200mg", cycles: [{ month1: 70, month2: 65, month3: 65 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 180 },
-  { id: 4, name: "ImmunoVit Plus", cycles: [{ month1: 50, month2: 50, month3: 50 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 88 },
-  { id: 5, name: "DermaShield Crema", cycles: [{ month1: 20, month2: 20, month3: 20 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 60 },
+  { id: 1, name: "CardioX 100mg", cycles: [{ month1: 40, month2: 40, month3: 40 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 95, companyForecast: 500 },
+  { id: 2, name: "NeuroFlex 50mg", cycles: [{ month1: 25, month2: 25, month3: 30 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 62, companyForecast: 300 },
+  { id: 3, name: "GastroPro 200mg", cycles: [{ month1: 70, month2: 65, month3: 65 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 180, companyForecast: 800 },
+  { id: 4, name: "ImmunoVit Plus", cycles: [{ month1: 50, month2: 50, month3: 50 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 88, companyForecast: 600 },
+  { id: 5, name: "DermaShield Crema", cycles: [{ month1: 20, month2: 20, month3: 20 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 60, companyForecast: 250 },
 ];
 
 function getCurrentCycleIndex(): number {
-  const month = new Date().getMonth(); // 0-11
+  const month = new Date().getMonth();
   return Math.floor(month / 3);
 }
 
@@ -56,6 +57,7 @@ export default function Prodotti() {
       name: fd.get("name") as string,
       cycles: emptyCycles,
       sold: Number(fd.get("sold") || 0),
+      companyForecast: Number(fd.get("forecast") || 0),
     }]);
     setOpen(false);
     toast.success("Prodotto aggiunto");
@@ -68,6 +70,10 @@ export default function Prodotti() {
       newCycles[cycleIdx] = { ...newCycles[cycleIdx], [monthKey]: value };
       return { ...p, cycles: newCycles };
     }));
+  };
+
+  const updateCompanyForecast = (productId: number, value: number) => {
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, companyForecast: value } : p));
   };
 
   const getTotalTarget = (p: Product) => {
@@ -93,6 +99,10 @@ export default function Prodotti() {
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-2"><Label>Nome Prodotto</Label><Input name="name" required className="rounded-xl" /></div>
               <div className="space-y-2"><Label>Venduti ad oggi</Label><Input name="sold" type="number" defaultValue={0} className="rounded-xl" /></div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1"><Building className="h-3 w-3" /> Totale previsto azienda</Label>
+                <Input name="forecast" type="number" defaultValue={0} className="rounded-xl" />
+              </div>
               <Button type="submit" className="w-full rounded-xl">Aggiungi</Button>
             </form>
           </DialogContent>
@@ -115,10 +125,7 @@ export default function Prodotti() {
               className="glass rounded-2xl shadow-soft overflow-hidden"
             >
               {/* Summary row */}
-              <div
-                className="p-4 cursor-pointer"
-                onClick={() => setExpandedId(isExpanded ? null : p.id)}
-              >
+              <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : p.id)}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium">{p.name}</p>
                   <div className="flex items-center gap-2">
@@ -135,15 +142,36 @@ export default function Prodotti() {
                   <span>{p.sold} venduti</span>
                   <span className="flex items-center gap-0.5"><TrendingUp className="h-3 w-3" />Target ciclo: {cycleTarget}</span>
                 </div>
+                {p.companyForecast > 0 && (
+                  <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
+                    <Building className="h-3 w-3" />
+                    Previsto azienda: {p.companyForecast} pz
+                  </div>
+                )}
               </div>
 
-              {/* Expanded: Cycle target table */}
+              {/* Expanded: Cycle target table + company forecast */}
               {isExpanded && (
                 <motion.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: "auto", opacity: 1 }}
                   className="px-4 pb-4"
                 >
+                  {/* Company forecast */}
+                  <div className="flex items-center gap-3 mb-3 bg-primary/5 rounded-xl p-3">
+                    <Building className="h-4 w-4 text-primary shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-1">Totale previsto azienda</p>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={p.companyForecast}
+                        onChange={(e) => updateCompanyForecast(p.id, Number(e.target.value) || 0)}
+                        className="rounded-lg h-8 text-sm"
+                      />
+                    </div>
+                  </div>
+
                   {/* Cycle selector tabs */}
                   <div className="flex gap-1 mb-3">
                     {cycleLabels.map((_, ci) => (

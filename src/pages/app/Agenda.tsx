@@ -34,6 +34,8 @@ type Appointment = {
   status: AppointmentStatus;
   phone: string;
   address: string;
+  paese: string;
+  microarea: string;
   bookingSource: BookingSource;
   lastVisitDate?: string;
   lastVisitNotes?: string;
@@ -50,6 +52,7 @@ const initialAppointments: Appointment[] = [
   {
     id: 1, date: today, time: "09:00", name: "Dr. Bianchi", type: "medico",
     status: "confermato", phone: "+393331234567", address: "Via Roma 12, Milano",
+    paese: "Milano", microarea: "Milano Nord",
     bookingSource: "Ambulatorio", lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX",
     currentVisitNotes: "", secretaryNotes: "", nextAppointmentDraft: "",
     products: [{ name: "CardioX 100mg", qty: 10 }]
@@ -57,6 +60,7 @@ const initialAppointments: Appointment[] = [
   {
     id: 2, date: today, time: "10:30", name: "Farmacia Centrale", type: "farmacia",
     status: "completato", phone: "+393339876543", address: "Corso Italia 5, Milano",
+    paese: "Milano", microarea: "Milano Centro",
     bookingSource: "WA", lastVisitDate: "2025-05-28", lastVisitNotes: "Ordine mensile confermato",
     currentVisitNotes: "", secretaryNotes: "", nextAppointmentDraft: "",
     products: [{ name: "GastroPro 200mg", qty: 20 }]
@@ -64,12 +68,14 @@ const initialAppointments: Appointment[] = [
   {
     id: 3, date: today, time: "14:00", name: "Dr.ssa Verdi", type: "medico",
     status: "programmato", phone: "+393335556677", address: "Via Dante 8, Roma",
+    paese: "Roma", microarea: "Roma Centro",
     bookingSource: "MioDottore", currentVisitNotes: "", secretaryNotes: "",
     nextAppointmentDraft: "", products: []
   },
   {
     id: 4, date: addDays(today, 1), time: "16:00", name: "Dr. Russo", type: "medico",
     status: "programmato", phone: "+393332223344", address: "Piazza Duomo 3, Napoli",
+    paese: "Napoli", microarea: "Napoli Centro",
     bookingSource: "Ambulatorio", currentVisitNotes: "", secretaryNotes: "",
     nextAppointmentDraft: "", products: []
   },
@@ -97,22 +103,19 @@ export default function Agenda() {
   const [detailApp, setDetailApp] = useState<Appointment | null>(null);
   const [editingTime, setEditingTime] = useState(false);
 
-  // Navigation
   const navigateDate = (dir: 1 | -1) => {
     if (viewMode === "day") setSelectedDate(prev => addDays(prev, dir));
     else if (viewMode === "week") setSelectedDate(prev => dir === 1 ? addWeeks(prev, 1) : subWeeks(prev, 1));
     else setSelectedDate(prev => dir === 1 ? addMonths(prev, 1) : subMonths(prev, 1));
   };
 
-  // Week days
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
-  // Month days
   const monthStart = startOfMonth(selectedDate);
   const monthEnd = endOfMonth(selectedDate);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const firstDayOffset = (getDay(monthStart) + 6) % 7; // Monday = 0
+  const firstDayOffset = (getDay(monthStart) + 6) % 7;
 
   const getAppointmentsForDate = (date: Date) =>
     appointments.filter(a => isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
@@ -131,6 +134,8 @@ export default function Agenda() {
       status: "programmato",
       phone: fd.get("phone") as string || "",
       address: fd.get("address") as string || "",
+      paese: fd.get("paese") as string || "",
+      microarea: fd.get("microarea") as string || "",
       bookingSource: fd.get("source") as BookingSource || "Ambulatorio",
       currentVisitNotes: "",
       secretaryNotes: "",
@@ -185,7 +190,6 @@ export default function Agenda() {
     });
   };
 
-  // Header title
   const headerTitle = useMemo(() => {
     if (viewMode === "day") return format(selectedDate, "d MMMM yyyy", { locale: it });
     if (viewMode === "week") return `${format(weekDays[0], "d MMM", { locale: it })} - ${format(weekDays[6], "d MMM yyyy", { locale: it })}`;
@@ -218,6 +222,8 @@ export default function Agenda() {
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" /></div>
+              <div className="space-y-1.5"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" /></div>
+              <div className="space-y-1.5"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" /></div>
               <div className="space-y-1.5">
                 <Label>Provenienza</Label>
                 <Select name="source" defaultValue="Ambulatorio">
@@ -268,7 +274,7 @@ export default function Agenda() {
         </button>
       </div>
 
-      {/* WEEK VIEW - horizontal strip */}
+      {/* WEEK VIEW */}
       {viewMode === "week" && (
         <div className="flex gap-1.5 mb-4">
           {weekDays.map(day => {
@@ -298,7 +304,7 @@ export default function Agenda() {
         </div>
       )}
 
-      {/* MONTH VIEW - calendar grid */}
+      {/* MONTH VIEW */}
       {viewMode === "month" && (
         <div className="mb-4">
           <div className="grid grid-cols-7 gap-0.5 mb-1">
@@ -358,15 +364,16 @@ export default function Agenda() {
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>
                     {statusLabels[a.status]}
                   </Badge>
-                  {a.address && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
-                      className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[120px]"
-                    >
-                      <MapPin className="h-2.5 w-2.5 shrink-0" />{a.address}
-                    </button>
-                  )}
+                  <span className="text-[10px] text-muted-foreground">{a.paese}</span>
                 </div>
+                {a.address && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
+                    className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[180px] mt-0.5"
+                  >
+                    <MapPin className="h-2.5 w-2.5 shrink-0" />{a.address}
+                  </button>
+                )}
               </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
                 <Clock className="h-3.5 w-3.5" />
@@ -387,7 +394,7 @@ export default function Agenda() {
               </SheetHeader>
 
               {/* Status & quick actions */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button onClick={() => changeStatus(detailApp)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[detailApp.status]}`}
                 >
@@ -395,6 +402,8 @@ export default function Agenda() {
                 </button>
                 <Badge variant="outline" className="text-xs">{detailApp.type === "medico" ? "Medico" : "Farmacia"}</Badge>
                 <Badge variant="outline" className="text-xs">{detailApp.bookingSource}</Badge>
+                <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.paese}</span>
+                <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.microarea}</span>
               </div>
 
               {/* Time (editable) */}
@@ -518,25 +527,27 @@ export default function Agenda() {
                 </div>
               </div>
 
-              {/* Excel upload */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Copia Excel ultimo ordine</Label>
-                <label className="flex items-center gap-2 glass rounded-xl p-3 cursor-pointer shadow-soft">
-                  <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                    {detailApp.orderFile ? <FileSpreadsheet className="h-4 w-4 text-success" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{detailApp.orderFile || "Carica file Excel"}</p>
-                    <p className="text-[10px] text-muted-foreground">.xlsx, .xls</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(detailApp, e)}
-                  />
-                </label>
-              </div>
+              {/* Excel upload - ONLY for farmacia */}
+              {detailApp.type === "farmacia" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-2 block">Copia Excel ultimo ordine</Label>
+                  <label className="flex items-center gap-2 glass rounded-xl p-3 cursor-pointer shadow-soft">
+                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                      {detailApp.orderFile ? <FileSpreadsheet className="h-4 w-4 text-success" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm truncate">{detailApp.orderFile || "Carica file Excel"}</p>
+                      <p className="text-[10px] text-muted-foreground">.xlsx, .xls</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(detailApp, e)}
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
