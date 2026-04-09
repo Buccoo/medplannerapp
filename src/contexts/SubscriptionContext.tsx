@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,7 +10,14 @@ type SubscriptionContextType = {
   gracePeriodEndsAt: Date | null;
   trialEndsAt: Date | null;
   isAccessAllowed: boolean;
+  isLoading: boolean;
   refresh: () => Promise<void>;
+  checkout: (plan: "mensile" | "annuale") => Promise<void>;
+};
+
+const PRICES = {
+  mensile: "price_1TKN0dLh7Ovc8cezbBgKd2CV",
+  annuale: "price_1TKN0eLh7Ovc8cezyshTMSbs",
 };
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -21,42 +28,50 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [planType, setPlanType] = useState<string | null>(null);
   const [gracePeriodEndsAt, setGracePeriodEndsAt] = useState<Date | null>(null);
   const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const refresh = async () => {
-    if (!user) { setStatus("none"); return; }
-
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error || !data) {
-      // No subscription record — create grace period
-      const graceEnd = new Date();
-      graceEnd.setHours(graceEnd.getHours() + 24);
-
-      await supabase.from("subscriptions").upsert({
-        user_id: user.id,
-        status: "grace_period",
-        grace_period_ends_at: graceEnd.toISOString(),
-      }, { onConflict: "user_id" });
-
-      setStatus("grace_period");
-      setGracePeriodEndsAt(graceEnd);
+  const refresh = useCallback(async () => {
+    if (!user) {
+      setStatus("none");
+      setIsLoading(false);
       return;
     }
 
-    setStatus(data.status as SubscriptionStatus);
-    setPlanType(data.plan_type);
-    setGracePeriodEndsAt(data.grace_period_ends_at ? new Date(data.grace_period_ends_at) : null);
-    setTrialEndsAt(data.trial_ends_at ? new Date(data.trial_ends_at) : null);
-  };
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+
+      setStatus(data.status as SubscriptionStatus);
+      setPlanType(data.plan_type || null);
+      setGracePeriodEndsAt(data.grace_period_ends_at ? new Date(data.grace_period_ends_at) : null);
+      setTrialEndsAt(data.trial_ends_at ? new Date(data.trial_ends_at) : null);
+    } catch (err) {
+      console.error("Subscription check failed:", err);
+      setStatus("none");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  const checkout = useCallback(async (plan: "mensile" | "annuale") => {
+    const { data, error } = await supabase.functions.invoke("create-checkout", {
+      body: { priceId: PRICES[plan], planType: plan },
+    });
+    if (error) throw error;
+    if (data?.url) window.open(data.url, "_blank");
+  }, []);
 
   useEffect(() => {
-    if (user) refresh();
-    else setStatus("none");
-  }, [user]);
+    if (user) {
+      refresh();
+      // Auto-refresh every 60s
+      const interval = setInterval(refresh, 60_000);
+      return () => clearInterval(interval);
+    } else {
+      setStatus("none");
+      setIsLoading(false);
+    }
+  }, [user, refresh]);
 
   const now = new Date();
   const isAccessAllowed =
@@ -66,7 +81,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
   return (
-    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, refresh }}>
+    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, isLoading, refresh, checkout }}>
       {children}
     </SubscriptionContext.Provider>
   );
