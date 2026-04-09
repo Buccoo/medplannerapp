@@ -1,10 +1,11 @@
-import { AlertTriangle, Clock, Sparkles } from "lucide-react";
+import { AlertTriangle, Clock, Sparkles, X } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useState } from "react";
 
 export default function SubscriptionBanner() {
   const { status, gracePeriodEndsAt, trialEndsAt, checkout } = useSubscription();
   const [loading, setLoading] = useState<string | null>(null);
+  const [dismissed, setDismissed] = useState(false);
 
   const handleCheckout = async (plan: "mensile" | "annuale") => {
     setLoading(plan);
@@ -15,10 +16,13 @@ export default function SubscriptionBanner() {
     }
   };
 
-  if (status === "grace_period" && gracePeriodEndsAt) {
+  if (status === "grace_period" && gracePeriodEndsAt && !dismissed) {
     const hoursLeft = Math.max(0, Math.ceil((gracePeriodEndsAt.getTime() - Date.now()) / 3600000));
     return (
-      <div className="mx-5 mt-4 rounded-2xl bg-amber-50 border border-amber-200 p-4">
+      <div className="mx-5 mt-4 rounded-2xl bg-amber-50 border border-amber-200 p-4 relative">
+        <button onClick={() => setDismissed(true)} className="absolute top-2 right-2 p-1 rounded-full hover:bg-amber-200/50 transition-colors">
+          <X className="h-4 w-4 text-amber-600" />
+        </button>
         <div className="flex items-start gap-3">
           <Clock className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
           <div className="flex-1">
