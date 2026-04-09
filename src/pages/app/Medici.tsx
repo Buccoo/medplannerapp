@@ -1,23 +1,42 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, MapPin } from "lucide-react";
+import { Search, Plus, Phone, MapPin, Clock, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-type Doctor = { id: number; name: string; specialty: string; area: string; phone: string; visits: number };
+const weekDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
+
+type Doctor = {
+  id: number;
+  name: string;
+  specialty: string;
+  paese: string;
+  microarea: string;
+  phone: string;
+  address: string;
+  visits: number;
+  officeHours: Record<string, string>; // day -> hours string
+  lastVisitDate?: string;
+  lastVisitNotes?: string;
+  currentVisitNotes?: string;
+};
 
 const specialties = ["Medico di Base", "Pediatra", "Cardiologo", "Neurologo", "Gastroenterologo", "Dermatologo"];
 
+const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
+
 const initialDoctors: Doctor[] = [
-  { id: 1, name: "Dr. Marco Bianchi", specialty: "Cardiologo", area: "Milano Nord", phone: "+39 02 1234567", visits: 12 },
-  { id: 2, name: "Dr.ssa Laura Verdi", specialty: "Pediatra", area: "Milano Centro", phone: "+39 02 7654321", visits: 8 },
-  { id: 3, name: "Dr. Giuseppe Russo", specialty: "Medico di Base", area: "Milano Sud", phone: "+39 02 9876543", visits: 15 },
-  { id: 4, name: "Dr.ssa Anna Esposito", specialty: "Neurologo", area: "Monza", phone: "+39 039 1234567", visits: 6 },
-  { id: 5, name: "Dr. Paolo Ferrari", specialty: "Gastroenterologo", area: "Bergamo", phone: "+39 035 7654321", visits: 10 },
+  { id: 1, name: "Dr. Marco Bianchi", specialty: "Cardiologo", paese: "Milano", microarea: "Milano Nord", address: "Via Roma 12, Milano", phone: "+39 02 1234567", visits: 12, officeHours: { ...emptyHours(), "Lunedì": "09:00-13:00", "Mercoledì": "14:00-18:00" }, lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX" },
+  { id: 2, name: "Dr.ssa Laura Verdi", specialty: "Pediatra", paese: "Milano", microarea: "Milano Centro", address: "Corso Italia 5, Milano", phone: "+39 02 7654321", visits: 8, officeHours: emptyHours() },
+  { id: 3, name: "Dr. Giuseppe Russo", specialty: "Medico di Base", paese: "Milano", microarea: "Milano Sud", address: "Via Dante 8, Milano", phone: "+39 02 9876543", visits: 15, officeHours: emptyHours() },
+  { id: 4, name: "Dr.ssa Anna Esposito", specialty: "Neurologo", paese: "Monza", microarea: "Monza", address: "Via Monza 20, Monza", phone: "+39 039 1234567", visits: 6, officeHours: emptyHours() },
+  { id: 5, name: "Dr. Paolo Ferrari", specialty: "Gastroenterologo", paese: "Bergamo", microarea: "Bergamo", address: "Via Bergamo 10, Bergamo", phone: "+39 035 7654321", visits: 10, officeHours: emptyHours() },
 ];
 
 export default function Medici() {
@@ -25,7 +44,7 @@ export default function Medici() {
   const [filterSpec, setFilterSpec] = useState("all");
   const [doctors, setDoctors] = useState(initialDoctors);
   const [open, setOpen] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [selected, setSelected] = useState<Doctor | null>(null);
 
   const filtered = doctors.filter(d =>
     (filterSpec === "all" || d.specialty === filterSpec) &&
@@ -39,23 +58,35 @@ export default function Medici() {
       id: Date.now(),
       name: fd.get("name") as string,
       specialty: fd.get("specialty") as string,
-      area: fd.get("area") as string,
+      paese: fd.get("paese") as string,
+      microarea: fd.get("microarea") as string,
+      address: fd.get("address") as string,
       phone: fd.get("phone") as string,
       visits: 0,
+      officeHours: emptyHours(),
     }]);
     setOpen(false);
     toast.success("Medico aggiunto");
   };
 
+  const updateDoctor = (updated: Doctor) => {
+    setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d));
+    setSelected(updated);
+  };
+
+  const openMaps = (address: string) => {
+    window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
+  };
+
   return (
-    <div className="px-5 pt-6">
+    <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Medici</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
-          <DialogContent className="rounded-3xl">
+          <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Medico</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-2"><Label>Nome</Label><Input name="name" required className="rounded-xl" placeholder="Dr. Mario Rossi" /></div>
@@ -66,7 +97,9 @@ export default function Medici() {
                   <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Microarea</Label><Input name="area" className="rounded-xl" placeholder="Milano Nord" /></div>
+              <div className="space-y-2"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" /></div>
+              <div className="space-y-2"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" /></div>
+              <div className="space-y-2"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" placeholder="Via Roma 12, Milano" /></div>
               <div className="space-y-2"><Label>Telefono</Label><Input name="phone" className="rounded-xl" placeholder="+39 ..." /></div>
               <Button type="submit" className="w-full rounded-xl">Aggiungi</Button>
             </form>
@@ -86,21 +119,6 @@ export default function Medici() {
         ))}
       </div>
 
-      {/* Doctor detail sheet */}
-      {selectedDoctor && (
-        <Dialog open={!!selectedDoctor} onOpenChange={() => setSelectedDoctor(null)}>
-          <DialogContent className="rounded-3xl">
-            <DialogHeader><DialogTitle>{selectedDoctor.name}</DialogTitle></DialogHeader>
-            <div className="space-y-3 text-sm">
-              <p><span className="text-muted-foreground">Specializzazione:</span> {selectedDoctor.specialty}</p>
-              <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground" />{selectedDoctor.area}</p>
-              <p className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{selectedDoctor.phone}</p>
-              <p><span className="text-muted-foreground">Visite effettuate:</span> {selectedDoctor.visits}</p>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
       {/* List */}
       <div className="space-y-3">
         {filtered.map((d, i) => (
@@ -109,7 +127,7 @@ export default function Medici() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            onClick={() => setSelectedDoctor(d)}
+            onClick={() => setSelected(d)}
             className="glass rounded-2xl p-4 shadow-soft flex items-center gap-4 cursor-pointer hover:shadow-glow transition-shadow"
           >
             <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
@@ -118,13 +136,101 @@ export default function Medici() {
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{d.name}</p>
               <p className="text-xs text-muted-foreground">{d.specialty}</p>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3" />{d.area}
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
+                <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.microarea}</span>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {/* Detail Sheet */}
+      <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
+          {selected && (
+            <div className="space-y-5">
+              <SheetHeader>
+                <SheetTitle className="text-left">{selected.name}</SheetTitle>
+              </SheetHeader>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{selected.specialty}</span>
+                <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
+                <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
+              </div>
+
+              {/* Phone */}
+              <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
+                <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center">
+                  <Phone className="h-4 w-4 text-success" />
+                </div>
+                <span className="text-sm text-primary">{selected.phone}</span>
+              </button>
+
+              {/* Address */}
+              {selected.address && (
+                <button onClick={() => openMaps(selected.address)} className="flex items-center gap-3 w-full text-left">
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="text-sm text-primary underline">{selected.address}</span>
+                </button>
+              )}
+
+              {/* Visits count */}
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
+              </div>
+
+              {/* Last visit info */}
+              {selected.lastVisitDate && (
+                <div className="bg-secondary/50 rounded-xl p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Ultima visita: {selected.lastVisitDate}</p>
+                  <p className="text-sm">{selected.lastVisitNotes || "—"}</p>
+                </div>
+              )}
+
+              {/* Office Hours */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> Orari ambulatoriali settimanali
+                </Label>
+                <div className="bg-secondary/50 rounded-xl p-3 space-y-2">
+                  {weekDays.map(day => (
+                    <div key={day} className="flex items-center gap-3">
+                      <span className="text-xs font-medium w-20 shrink-0">{day}</span>
+                      <Input
+                        value={selected.officeHours[day] || ""}
+                        onChange={(e) => updateDoctor({
+                          ...selected,
+                          officeHours: { ...selected.officeHours, [day]: e.target.value }
+                        })}
+                        className="rounded-lg h-8 text-xs"
+                        placeholder="es. 09:00-13:00"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Note visita corrente</Label>
+                <Textarea
+                  value={selected.currentVisitNotes || ""}
+                  onChange={(e) => updateDoctor({ ...selected, currentVisitNotes: e.target.value })}
+                  className="rounded-xl min-h-[80px]"
+                  placeholder="Scrivi note..."
+                />
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
