@@ -18,6 +18,8 @@ import Farmacie from "./pages/app/Farmacie";
 import Prodotti from "./pages/app/Prodotti";
 import Impostazioni from "./pages/app/Impostazioni";
 import NotFound from "./pages/NotFound";
+import Privacy from "./pages/Privacy";
+import Termini from "./pages/Termini";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +35,8 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/termini" element={<Termini />} />
                 <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
                   <Route path="agenda" element={<Agenda />} />
