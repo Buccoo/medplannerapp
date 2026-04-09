@@ -70,8 +70,12 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="text-center text-xs text-muted-foreground pb-8">
-        © 2026 MedPlanner — Tutti i diritti riservati
+      <footer className="text-center text-xs text-muted-foreground pb-8 space-y-2">
+        <div className="flex justify-center gap-4">
+          <a href="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</a>
+          <a href="/termini" className="underline hover:text-foreground transition-colors">Termini di Servizio</a>
+        </div>
+        <p>© 2026 MedPlanner — Tutti i diritti riservati</p>
       </footer>
     </div>
   );
