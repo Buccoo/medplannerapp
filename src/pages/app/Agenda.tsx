@@ -466,8 +466,8 @@ export default function Agenda() {
                 </button>
               )}
 
-              {/* Last visit */}
-              {detailApp.lastVisitDate && (
+              {/* Last visit - only for medico */}
+              {detailApp.type === "medico" && detailApp.lastVisitDate && (
                 <div className="bg-secondary/50 rounded-xl p-3">
                   <p className="text-xs text-muted-foreground mb-1">Ultima visita: {detailApp.lastVisitDate}</p>
                   <p className="text-sm">{detailApp.lastVisitNotes || "—"}</p>
