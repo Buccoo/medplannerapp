@@ -70,12 +70,24 @@ export default function Landing() {
         </div>
       </section>
 
-      <footer className="text-center text-xs text-muted-foreground pb-8 space-y-2">
-        <div className="flex justify-center gap-4">
-          <a href="/privacy" className="underline hover:text-foreground transition-colors">Privacy Policy</a>
-          <a href="/termini" className="underline hover:text-foreground transition-colors">Termini di Servizio</a>
+      <footer className="border-t border-border px-6 py-6 text-center text-xs text-muted-foreground">
+        <div className="mx-auto max-w-3xl space-y-3">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <span>·</span>
+            <a href="/termini" className="hover:text-foreground transition-colors">Termini e Condizioni</a>
+          </div>
+          <p className="text-muted-foreground/70">
+            BUCCOLIERO GIANLUCA — Partita IVA: 03470330733
+          </p>
+          <p>© 2026 MedPlanner. Tutti i diritti riservati.</p>
+          <p>
+            Powered by{" "}
+            <a href="https://tattica.online" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
+              tattica.online
+            </a>
+          </p>
         </div>
-        <p>© 2026 MedPlanner — Tutti i diritti riservati</p>
       </footer>
     </div>
   );
