@@ -1,13 +1,33 @@
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, LogOut, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAccentColor } from "@/contexts/AccentColorContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 export default function Impostazioni() {
   const navigate = useNavigate();
   const { accentHsl, setAccentHsl, colors } = useAccentColor();
+  const { user, signOut } = useAuth();
+  const { status, planType } = useSubscription();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal");
+      if (error) throw error;
+      if (data?.url) window.open(data.url, "_blank");
+    } catch (err) {
+      console.error("Portal error:", err);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
 
   return (
     <div className="px-5 pt-6">
