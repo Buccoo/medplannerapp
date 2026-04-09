@@ -21,13 +21,14 @@ type Doctor = {
   phone: string;
   address: string;
   visits: number;
-  officeHours: Record<string, string>; // day -> hours string
+  officeHours: Record<string, string>;
+  kClient: boolean;
   lastVisitDate?: string;
   lastVisitNotes?: string;
   currentVisitNotes?: string;
 };
 
-const specialties = ["Medico di Base", "Pediatra", "Cardiologo", "Neurologo", "Gastroenterologo", "Dermatologo"];
+const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
 
 const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
 
