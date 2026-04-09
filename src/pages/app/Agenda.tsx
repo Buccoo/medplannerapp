@@ -160,6 +160,12 @@ export default function Agenda() {
     setDetailApp(updated);
   };
 
+  const deleteAppointment = (id: number) => {
+    setAppointments(prev => prev.filter(a => a.id !== id));
+    setDetailApp(null);
+    toast.success("Appuntamento eliminato");
+  };
+
   const changeStatus = (app: Appointment) => {
     const order: AppointmentStatus[] = ["programmato", "confermato", "completato"];
     const next = order[(order.indexOf(app.status) + 1) % order.length];
