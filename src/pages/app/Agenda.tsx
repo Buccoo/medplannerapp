@@ -138,7 +138,7 @@ export default function Agenda() {
       date: selectedDate,
       time: fd.get("time") as string,
       name: fd.get("name") as string,
-      type: fd.get("type") as "medico" | "farmacia",
+      type: "medico" as const,
       status: "programmato",
       phone: fd.get("phone") as string || "",
       address: fd.get("address") as string || "",
@@ -216,14 +216,14 @@ export default function Agenda() {
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
-              <div className="space-y-1.5"><Label>Cliente</Label><Input name="name" placeholder="Nome" required className="rounded-xl" /></div>
               <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select name="type" defaultValue="medico">
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <Label>Medico</Label>
+                <Select name="name" required>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona medico..." /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="medico">Medico</SelectItem>
-                    <SelectItem value="farmacia">Farmacia</SelectItem>
+                    {DOCTORS_LIST.map(d => (
+                      <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
