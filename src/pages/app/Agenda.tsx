@@ -373,6 +373,7 @@ export default function Agenda() {
                     {statusLabels[a.status]}
                   </Badge>
                   <span className="text-[10px] text-muted-foreground">{a.paese}</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.bookingSource}</span>
                 </div>
                 {a.address && (
                   <button
