@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, MapPin, Clock, Calendar } from "lucide-react";
+import { Search, Plus, Phone, MapPin, Clock, Calendar, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -259,6 +260,29 @@ export default function Medici() {
                   placeholder="Scrivi note..."
                 />
               </div>
+
+              {/* Delete */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full rounded-xl gap-2">
+                    <Trash2 className="h-4 w-4" /> Elimina Medico
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-3xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Eliminare {selected.name}?</AlertDialogTitle>
+                    <AlertDialogDescription>Questa azione è irreversibile.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+                    <AlertDialogAction className="rounded-xl" onClick={() => {
+                      setDoctors(prev => prev.filter(d => d.id !== selected.id));
+                      setSelected(null);
+                      toast.success("Medico eliminato");
+                    }}>Elimina</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </SheetContent>

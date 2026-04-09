@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, TrendingUp, ChevronDown, ChevronUp, Building } from "lucide-react";
+import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -213,6 +214,29 @@ export default function Prodotti() {
                       <span>Totale anno: {getTotalTarget(p)} pz</span>
                     </div>
                   </div>
+
+                  {/* Delete */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="destructive" size="sm" className="w-full rounded-xl gap-2 mt-3">
+                        <Trash2 className="h-4 w-4" /> Elimina Prodotto
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="rounded-3xl">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Eliminare {p.name}?</AlertDialogTitle>
+                        <AlertDialogDescription>Questa azione è irreversibile.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+                        <AlertDialogAction className="rounded-xl" onClick={() => {
+                          setProducts(prev => prev.filter(pr => pr.id !== p.id));
+                          setExpandedId(null);
+                          toast.success("Prodotto eliminato");
+                        }}>Elimina</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </motion.div>
               )}
             </motion.div>
