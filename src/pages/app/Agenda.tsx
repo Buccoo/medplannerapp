@@ -22,6 +22,14 @@ import { it } from "date-fns/locale";
 
 const PRODUCTS_LIST = ["CardioX 100mg", "NeuroFlex 50mg", "GastroPro 200mg", "ImmunoVit Plus", "DermaShield Crema"];
 
+const DOCTORS_LIST = [
+  { name: "Dr. Marco Bianchi", phone: "+39 02 1234567", address: "Via Roma 12, Milano", paese: "Milano", microarea: "Milano Nord" },
+  { name: "Dr.ssa Laura Verdi", phone: "+39 02 7654321", address: "Corso Italia 5, Milano", paese: "Milano", microarea: "Milano Centro" },
+  { name: "Dr. Giuseppe Russo", phone: "+39 02 9876543", address: "Via Dante 8, Milano", paese: "Milano", microarea: "Milano Sud" },
+  { name: "Dr.ssa Anna Esposito", phone: "+39 039 1234567", address: "Via Monza 20, Monza", paese: "Monza", microarea: "Monza" },
+  { name: "Dr. Paolo Ferrari", phone: "+39 035 7654321", address: "Via Bergamo 10, Bergamo", paese: "Bergamo", microarea: "Bergamo" },
+];
+
 type AppointmentStatus = "programmato" | "confermato" | "completato";
 type BookingSource = "Ambulatorio" | "WA" | "MioDottore";
 
