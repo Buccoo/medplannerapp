@@ -474,48 +474,83 @@ export default function Agenda() {
                 </div>
               )}
 
-              {/* Products */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Prodotti discussi</Label>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {PRODUCTS_LIST.map(pName => {
-                    const selected = detailApp.products.find(p => p.name === pName);
-                    return (
-                      <button
-                        key={pName}
-                        onClick={() => toggleProduct(detailApp, pName)}
-                        className={`text-xs px-2.5 py-1.5 rounded-lg transition-all ${
-                          selected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                        }`}
-                      >
-                        {selected && <Check className="h-3 w-3 inline mr-1" />}
-                        {pName}
-                      </button>
-                    );
-                  })}
-                </div>
-                {detailApp.products.length > 0 && (
-                  <div className="space-y-1.5">
-                    {detailApp.products.map(p => (
-                      <div key={p.name} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-1.5">
-                        <span className="text-xs">{p.name}</span>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={p.qty}
-                          onChange={(e) => updateProductQty(detailApp, p.name, Number(e.target.value) || 1)}
-                          className="w-16 h-7 text-xs text-center rounded-lg"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Notes fields */}
-              <div className="space-y-3">
+              {/* Products - only for medico */}
+              {detailApp.type === "medico" && (
                 <div>
-                  <Label className="text-xs text-muted-foreground">Note visita corrente</Label>
+                  <Label className="text-xs text-muted-foreground mb-2 block">Prodotti discussi</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {PRODUCTS_LIST.map(pName => {
+                      const selected = detailApp.products.find(p => p.name === pName);
+                      return (
+                        <button
+                          key={pName}
+                          onClick={() => toggleProduct(detailApp, pName)}
+                          className={`text-xs px-2.5 py-1.5 rounded-lg transition-all ${
+                            selected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                          }`}
+                        >
+                          {selected && <Check className="h-3 w-3 inline mr-1" />}
+                          {pName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {detailApp.products.length > 0 && (
+                    <div className="space-y-1.5">
+                      {detailApp.products.map(p => (
+                        <div key={p.name} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-1.5">
+                          <span className="text-xs">{p.name}</span>
+                          <Input
+                            type="number"
+                            min={1}
+                            value={p.qty}
+                            onChange={(e) => updateProductQty(detailApp, p.name, Number(e.target.value) || 1)}
+                            className="w-16 h-7 text-xs text-center rounded-lg"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Notes - only for medico */}
+              {detailApp.type === "medico" && (
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Note visita corrente</Label>
+                    <Textarea
+                      value={detailApp.currentVisitNotes}
+                      onChange={(e) => updateAppointment({ ...detailApp, currentVisitNotes: e.target.value })}
+                      className="rounded-xl mt-1 min-h-[60px]"
+                      placeholder="Scrivi note..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Note per la segreteria</Label>
+                    <Textarea
+                      value={detailApp.secretaryNotes}
+                      onChange={(e) => updateAppointment({ ...detailApp, secretaryNotes: e.target.value })}
+                      className="rounded-xl mt-1 min-h-[60px]"
+                      placeholder="Note segreteria..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Bozza prossimo appuntamento</Label>
+                    <Textarea
+                      value={detailApp.nextAppointmentDraft}
+                      onChange={(e) => updateAppointment({ ...detailApp, nextAppointmentDraft: e.target.value })}
+                      className="rounded-xl mt-1 min-h-[60px]"
+                      placeholder="Prossimo appuntamento..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Farmacia: only notes */}
+              {detailApp.type === "farmacia" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Note</Label>
                   <Textarea
                     value={detailApp.currentVisitNotes}
                     onChange={(e) => updateAppointment({ ...detailApp, currentVisitNotes: e.target.value })}
@@ -523,25 +558,7 @@ export default function Agenda() {
                     placeholder="Scrivi note..."
                   />
                 </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Note per la segreteria</Label>
-                  <Textarea
-                    value={detailApp.secretaryNotes}
-                    onChange={(e) => updateAppointment({ ...detailApp, secretaryNotes: e.target.value })}
-                    className="rounded-xl mt-1 min-h-[60px]"
-                    placeholder="Note segreteria..."
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Bozza prossimo appuntamento</Label>
-                  <Textarea
-                    value={detailApp.nextAppointmentDraft}
-                    onChange={(e) => updateAppointment({ ...detailApp, nextAppointmentDraft: e.target.value })}
-                    className="rounded-xl mt-1 min-h-[60px]"
-                    placeholder="Prossimo appuntamento..."
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Excel upload - ONLY for farmacia */}
               {detailApp.type === "farmacia" && (
