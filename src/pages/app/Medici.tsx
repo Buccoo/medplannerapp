@@ -23,6 +23,7 @@ type Doctor = {
   visits: number;
   officeHours: Record<string, string>;
   kClient: boolean;
+  targetClass: "A" | "B" | "C" | "";
   lastVisitDate?: string;
   lastVisitNotes?: string;
   currentVisitNotes?: string;
@@ -33,11 +34,11 @@ const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
 const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
 
 const initialDoctors: Doctor[] = [
-  { id: 1, name: "Dr. Marco Bianchi", specialty: "INT", paese: "Milano", microarea: "Milano Nord", address: "Via Roma 12, Milano", phone: "+39 02 1234567", visits: 12, kClient: true, officeHours: { ...emptyHours(), "Lunedì": "09:00-13:00", "Mercoledì": "14:00-18:00" }, lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX" },
-  { id: 2, name: "Dr.ssa Laura Verdi", specialty: "PED", paese: "Milano", microarea: "Milano Centro", address: "Corso Italia 5, Milano", phone: "+39 02 7654321", visits: 8, kClient: false, officeHours: emptyHours() },
-  { id: 3, name: "Dr. Giuseppe Russo", specialty: "MMG", paese: "Milano", microarea: "Milano Sud", address: "Via Dante 8, Milano", phone: "+39 02 9876543", visits: 15, kClient: true, officeHours: emptyHours() },
-  { id: 4, name: "Dr.ssa Anna Esposito", specialty: "ORL", paese: "Monza", microarea: "Monza", address: "Via Monza 20, Monza", phone: "+39 039 1234567", visits: 6, kClient: false, officeHours: emptyHours() },
-  { id: 5, name: "Dr. Paolo Ferrari", specialty: "GASTRO", paese: "Bergamo", microarea: "Bergamo", address: "Via Bergamo 10, Bergamo", phone: "+39 035 7654321", visits: 10, kClient: false, officeHours: emptyHours() },
+  { id: 1, name: "Dr. Marco Bianchi", specialty: "INT", paese: "Milano", microarea: "Milano Nord", address: "Via Roma 12, Milano", phone: "+39 02 1234567", visits: 12, kClient: true, targetClass: "A", officeHours: { ...emptyHours(), "Lunedì": "09:00-13:00", "Mercoledì": "14:00-18:00" }, lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX" },
+  { id: 2, name: "Dr.ssa Laura Verdi", specialty: "PED", paese: "Milano", microarea: "Milano Centro", address: "Corso Italia 5, Milano", phone: "+39 02 7654321", visits: 8, kClient: false, targetClass: "B", officeHours: emptyHours() },
+  { id: 3, name: "Dr. Giuseppe Russo", specialty: "MMG", paese: "Milano", microarea: "Milano Sud", address: "Via Dante 8, Milano", phone: "+39 02 9876543", visits: 15, kClient: true, targetClass: "A", officeHours: emptyHours() },
+  { id: 4, name: "Dr.ssa Anna Esposito", specialty: "ORL", paese: "Monza", microarea: "Monza", address: "Via Monza 20, Monza", phone: "+39 039 1234567", visits: 6, kClient: false, targetClass: "C", officeHours: emptyHours() },
+  { id: 5, name: "Dr. Paolo Ferrari", specialty: "GASTRO", paese: "Bergamo", microarea: "Bergamo", address: "Via Bergamo 10, Bergamo", phone: "+39 035 7654321", visits: 10, kClient: false, targetClass: "", officeHours: emptyHours() },
 ];
 
 export default function Medici() {
@@ -65,6 +66,7 @@ export default function Medici() {
       phone: fd.get("phone") as string,
       visits: 0,
       kClient: false,
+      targetClass: "",
       officeHours: emptyHours(),
     }]);
     setOpen(false);
@@ -175,6 +177,19 @@ export default function Medici() {
                 >
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.kClient ? "translate-x-5" : ""}`} />
                 </button>
+              </div>
+
+              {/* Target class */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Target</span>
+                <Select value={selected.targetClass || ""} onValueChange={(v) => updateDoctor({ ...selected, targetClass: v as "A" | "B" | "C" | "" })}>
+                  <SelectTrigger className="w-24 rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Phone */}
