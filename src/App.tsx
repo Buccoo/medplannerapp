@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AccentColorProvider } from "@/contexts/AccentColorContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -25,19 +27,21 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/app" element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="agenda" element={<Agenda />} />
-              <Route path="medici" element={<Medici />} />
-              <Route path="farmacie" element={<Farmacie />} />
-              <Route path="prodotti" element={<Prodotti />} />
-              <Route path="impostazioni" element={<Impostazioni />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<Dashboard />} />
+                <Route path="agenda" element={<Agenda />} />
+                <Route path="medici" element={<Medici />} />
+                <Route path="farmacie" element={<Farmacie />} />
+                <Route path="prodotti" element={<Prodotti />} />
+                <Route path="impostazioni" element={<Impostazioni />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </AccentColorProvider>
