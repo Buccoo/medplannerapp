@@ -141,6 +141,7 @@ export default function Medici() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.microarea}</span>
+                {d.kClient && <span className="text-[10px] text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">K</span>}
               </div>
             </div>
           </motion.div>
