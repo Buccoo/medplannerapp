@@ -23,6 +23,7 @@ type Doctor = {
   visits: number;
   officeHours: Record<string, string>;
   kClient: boolean;
+  targetClass: "A" | "B" | "C" | "";
   lastVisitDate?: string;
   lastVisitNotes?: string;
   currentVisitNotes?: string;
@@ -175,6 +176,19 @@ export default function Medici() {
                 >
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.kClient ? "translate-x-5" : ""}`} />
                 </button>
+              </div>
+
+              {/* Target class */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Target</span>
+                <Select value={selected.targetClass || ""} onValueChange={(v) => updateDoctor({ ...selected, targetClass: v as "A" | "B" | "C" | "" })}>
+                  <SelectTrigger className="w-24 rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A">A</SelectItem>
+                    <SelectItem value="B">B</SelectItem>
+                    <SelectItem value="C">C</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Phone */}
