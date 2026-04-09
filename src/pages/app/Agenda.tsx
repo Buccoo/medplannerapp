@@ -118,7 +118,7 @@ export default function Agenda() {
   const firstDayOffset = (getDay(monthStart) + 6) % 7;
 
   const getAppointmentsForDate = (date: Date) =>
-    appointments.filter(a => isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
+    appointments.filter(a => a.type === "medico" && isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
 
   const todayAppointments = getAppointmentsForDate(selectedDate);
 
