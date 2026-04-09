@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
   FileSpreadsheet, Check, CalendarDays, CalendarRange, Calendar as CalendarIcon,
-  X, Upload
+  X, Upload, Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -430,7 +430,21 @@ export default function Agenda() {
                 )}
               </div>
 
-              {/* Phone */}
+              {/* Delete */}
+              <button
+                onClick={() => {
+                  setAppointments(prev => prev.filter(a => a.id !== detailApp.id));
+                  setDetailApp(null);
+                  toast.success("Appuntamento eliminato");
+                }}
+                className="flex items-center gap-3 w-full text-left"
+              >
+                <div className="h-9 w-9 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </div>
+                <span className="text-sm text-destructive">Elimina appuntamento</span>
+              </button>
+
               {detailApp.phone && (
                 <button onClick={() => callPhone(detailApp.phone)} className="flex items-center gap-3 w-full text-left">
                   <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center">
