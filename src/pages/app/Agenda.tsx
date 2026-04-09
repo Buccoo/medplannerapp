@@ -384,9 +384,17 @@ export default function Agenda() {
                   </button>
                 )}
               </div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                <Clock className="h-3.5 w-3.5" />
-                {a.time}
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {a.time}
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); deleteAppointment(a.id); }}
+                  className="p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
             </motion.div>
           ))
