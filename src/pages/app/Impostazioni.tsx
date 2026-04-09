@@ -68,6 +68,42 @@ export default function Impostazioni() {
           ))}
         </div>
       </div>
+
+      {/* Abbonamento */}
+      <div className="glass rounded-2xl p-5 shadow-soft mt-6">
+        <h2 className="font-semibold mb-4">Abbonamento</h2>
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Stato</p>
+            <p className="font-medium capitalize">{status === "grace_period" ? "Periodo di prova" : status}</p>
+          </div>
+          {planType && (
+            <div>
+              <p className="text-sm text-muted-foreground">Piano</p>
+              <p className="font-medium capitalize">{planType}</p>
+            </div>
+          )}
+        </div>
+        {(status === "active" || status === "trialing") && (
+          <button
+            onClick={openPortal}
+            disabled={portalLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-secondary text-foreground font-medium text-sm hover:bg-secondary/80 disabled:opacity-50"
+          >
+            <CreditCard className="h-4 w-4" />
+            {portalLoading ? "Caricamento..." : "Gestisci Abbonamento"}
+          </button>
+        )}
+      </div>
+
+      {/* Logout */}
+      <button
+        onClick={signOut}
+        className="w-full mt-6 flex items-center justify-center gap-2 py-3 rounded-2xl bg-destructive/10 text-destructive font-medium hover:bg-destructive/20"
+      >
+        <LogOut className="h-4 w-4" />
+        Esci
+      </button>
     </div>
   );
 }
