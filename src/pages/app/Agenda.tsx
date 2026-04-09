@@ -406,29 +406,31 @@ export default function Agenda() {
                 <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.microarea}</span>
               </div>
 
-              {/* Time (editable) */}
-              <div className="flex items-center gap-3">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                {editingTime ? (
-                  <Input
-                    type="time"
-                    defaultValue={detailApp.time}
-                    className="rounded-xl w-32 h-8"
-                    autoFocus
-                    onBlur={(e) => {
-                      if (e.target.value) updateAppointment({ ...detailApp, time: e.target.value });
-                      setEditingTime(false);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                    }}
-                  />
-                ) : (
-                  <button onClick={() => setEditingTime(true)} className="text-sm font-medium hover:text-primary transition-colors">
-                    {detailApp.time} <span className="text-xs text-muted-foreground ml-1">(modifica)</span>
-                  </button>
-                )}
-              </div>
+              {/* Time (editable) - only for medico */}
+              {detailApp.type === "medico" && (
+                <div className="flex items-center gap-3">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  {editingTime ? (
+                    <Input
+                      type="time"
+                      defaultValue={detailApp.time}
+                      className="rounded-xl w-32 h-8"
+                      autoFocus
+                      onBlur={(e) => {
+                        if (e.target.value) updateAppointment({ ...detailApp, time: e.target.value });
+                        setEditingTime(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                      }}
+                    />
+                  ) : (
+                    <button onClick={() => setEditingTime(true)} className="text-sm font-medium hover:text-primary transition-colors">
+                      {detailApp.time} <span className="text-xs text-muted-foreground ml-1">(modifica)</span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Delete */}
               <button
