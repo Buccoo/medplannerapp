@@ -47,6 +47,12 @@ export default function Medici() {
   const [editData, setEditData] = useState<Partial<Doctor>>({});
   const [loading, setLoading] = useState(true);
 
+  // AI parsing state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [formDefaults, setFormDefaults] = useState<{name?: string; specialty?: string; paese?: string; microarea?: string; address?: string; phone?: string; office_hours?: Record<string, string>}>({});
+
   const fetchDoctors = async () => {
     if (!user) return;
     const { data, error } = await supabase.from("doctors").select("*").order("name");
@@ -70,6 +76,33 @@ export default function Medici() {
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const parseWithAI = async () => {
+    if (!aiText.trim()) return;
+    setAiLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-doctor", {
+        body: { text: aiText },
+      });
+      if (error) throw error;
+      setFormDefaults({
+        name: data.name || "",
+        specialty: data.specialty || "MMG",
+        paese: data.paese || "",
+        microarea: data.microarea || "",
+        address: data.address || "",
+        phone: data.phone || "",
+        office_hours: data.office_hours || emptyHours(),
+      });
+      setAiOpen(false);
+      setAiText("");
+      toast.success("Dati compilati dall'AI!");
+    } catch (e: any) {
+      toast.error(e?.message || "Errore nell'analisi AI");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user) return;
@@ -82,10 +115,11 @@ export default function Medici() {
       microarea: fd.get("microarea") as string,
       address: fd.get("address") as string,
       phone: fd.get("phone") as string,
-      office_hours: emptyHours(),
+      office_hours: formDefaults.office_hours || emptyHours(),
     });
     if (error) { toast.error("Errore nel salvataggio"); return; }
     setOpen(false);
+    setFormDefaults({});
     toast.success("Medico aggiunto");
     fetchDoctors();
   };
