@@ -171,27 +171,62 @@ export default function Medici() {
     <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Medici</h1>
-        <Dialog open={open} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setOpen(v); }}>
+        <Dialog open={open} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) setFormDefaults({}); setOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Nuovo Medico</DialogTitle></DialogHeader>
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="space-y-2"><Label>Nome</Label><Input name="name" required className="rounded-xl" placeholder="Dr. Mario Rossi" /></div>
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Nuovo Medico</DialogTitle>
+                <Button type="button" size="sm" variant="outline" className="rounded-xl gap-1.5 text-xs h-8 px-3" onClick={() => setAiOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5" /> AI
+                </Button>
+              </div>
+            </DialogHeader>
+            <form onSubmit={handleAdd} className="space-y-4" key={JSON.stringify(formDefaults)}>
+              <div className="space-y-2"><Label>Nome</Label><Input name="name" required className="rounded-xl" placeholder="Dr. Mario Rossi" defaultValue={formDefaults.name || ""} /></div>
               <div className="space-y-2">
                 <Label>Specializzazione</Label>
-                <Select name="specialty" defaultValue="MMG">
+                <Select name="specialty" defaultValue={formDefaults.specialty || "MMG"}>
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" /></div>
-              <div className="space-y-2"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" /></div>
-              <div className="space-y-2"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" placeholder="Via Roma 12, Milano" /></div>
-              <div className="space-y-2"><Label>Telefono</Label><Input name="phone" className="rounded-xl" placeholder="+39 ..." /></div>
+              <div className="space-y-2"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" defaultValue={formDefaults.paese || ""} /></div>
+              <div className="space-y-2"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" defaultValue={formDefaults.microarea || ""} /></div>
+              <div className="space-y-2"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" placeholder="Via Roma 12, Milano" defaultValue={formDefaults.address || ""} /></div>
+              <div className="space-y-2"><Label>Telefono</Label><Input name="phone" className="rounded-xl" placeholder="+39 ..." defaultValue={formDefaults.phone || ""} /></div>
+              {formDefaults.office_hours && Object.values(formDefaults.office_hours).some(v => v) && (
+                <div className="bg-secondary/50 rounded-xl p-3 space-y-1">
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Orari (compilati da AI)</Label>
+                  {weekDays.map(day => formDefaults.office_hours?.[day] ? (
+                    <div key={day} className="flex items-center gap-2 text-xs">
+                      <span className="font-medium w-20">{day}</span>
+                      <span>{formDefaults.office_hours[day]}</span>
+                    </div>
+                  ) : null)}
+                </div>
+              )}
               <Button type="submit" className="w-full rounded-xl">Aggiungi</Button>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* AI Dialog */}
+        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+          <DialogContent className="rounded-3xl">
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> Compila con AI</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">Incolla le informazioni del medico (da sito ASL, rubrica, ecc.) e l'AI compilerà automaticamente i campi.</p>
+            <Textarea
+              value={aiText}
+              onChange={e => setAiText(e.target.value)}
+              className="rounded-xl min-h-[180px] text-sm"
+              placeholder={"Cognome: ROSSI\nNome: MARIO\nTipo Medico: GENERICO\nIndirizzo: VIA ROMA 12, MILANO\nTelefono: 3201234567\nOrario:\nLunedi: 09:00 - 12:00\n..."}
+            />
+            <Button onClick={parseWithAI} disabled={aiLoading || !aiText.trim()} className="w-full rounded-xl gap-2">
+              {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analisi in corso...</> : <><Sparkles className="h-4 w-4" /> Compila campi</>}
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
