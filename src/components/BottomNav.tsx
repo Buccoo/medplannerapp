@@ -1,6 +1,7 @@
-import { Calendar, Users, Building2, Package, Home } from "lucide-react";
+import { Calendar, Users, Building2, Package, Home, Shield } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAdmin } from "@/hooks/useAdmin";
 
 const leftTabs = [
   { to: "/app/agenda", icon: Calendar, label: "Agenda" },
@@ -15,6 +16,8 @@ const rightTabs = [
 const homeTab = { to: "/app", icon: Home, label: "Home" };
 
 export default function BottomNav() {
+  const { isAdmin } = useAdmin();
+
   return (
     <nav className="fixed bottom-0 inset-x-0 z-50 safe-area-pb">
       <div className="relative glass-strong border-t">
@@ -88,6 +91,23 @@ export default function BottomNav() {
             </>
           )}
         </NavLink>
+
+        {/* Admin button - top right */}
+        {isAdmin && (
+          <NavLink
+            to="/app/admin"
+            className={({ isActive }) =>
+              cn(
+                "absolute right-3 -top-4 flex items-center justify-center h-8 w-8 rounded-full shadow-md transition-all",
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:bg-primary/20"
+              )
+            }
+          >
+            <Shield className="h-4 w-4" />
+          </NavLink>
+        )}
       </div>
     </nav>
   );
