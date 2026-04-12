@@ -74,6 +74,14 @@ export default function Agenda() {
   const [editingTime, setEditingTime] = useState(false);
   const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
+  const [selectedDoctorName, setSelectedDoctorName] = useState("");
+
+  const filteredDoctors = useMemo(() => {
+    if (!doctorSearch) return doctors;
+    return doctors.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
+  }, [doctors, doctorSearch]);
 
   const fetchAppointments = async () => {
     if (!user) return;
@@ -128,6 +136,7 @@ export default function Agenda() {
     if (!user) return;
     const fd = new FormData(e.currentTarget);
     const doctorName = fd.get("name") as string;
+    if (!doctorName) { toast.error("Seleziona un medico"); return; }
     const doctor = doctors.find(d => d.name === doctorName);
     const { error } = await supabase.from("appointments").insert({
       user_id: user.id,
@@ -207,21 +216,43 @@ export default function Agenda() {
     <div className="px-4 pt-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setAddOpen(v); }}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <Label>Medico</Label>
-                <Select name="name" required>
-                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona medico..." /></SelectTrigger>
-                  <SelectContent>
-                    {doctors.map(d => <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <input type="hidden" name="name" value={selectedDoctorName} />
+                <Input
+                  value={doctorSearch}
+                  onChange={(e) => { setDoctorSearch(e.target.value); setSelectedDoctorName(""); setShowDoctorSuggestions(true); }}
+                  onFocus={() => setShowDoctorSuggestions(true)}
+                  placeholder="Cerca medico..."
+                  className="rounded-xl"
+                  autoComplete="off"
+                />
+                {showDoctorSuggestions && filteredDoctors.length > 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredDoctors.map(d => (
+                      <button
+                        key={d.name}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors first:rounded-t-xl last:rounded-b-xl"
+                        onClick={() => { setDoctorSearch(d.name); setSelectedDoctorName(d.name); setShowDoctorSuggestions(false); }}
+                      >
+                        {d.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showDoctorSuggestions && doctorSearch && filteredDoctors.length === 0 && (
+                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg px-3 py-2 text-sm text-muted-foreground">
+                    Nessun medico trovato
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
