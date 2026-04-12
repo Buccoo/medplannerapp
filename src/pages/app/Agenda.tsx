@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
@@ -104,6 +105,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 export default function Agenda() {
+  const { canEdit } = useSubscription();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [appointments, setAppointments] = useState(initialAppointments);
@@ -215,7 +217,7 @@ export default function Agenda() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>

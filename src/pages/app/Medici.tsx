@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { motion } from "framer-motion";
 import { Search, Plus, Phone, MapPin, Clock, Calendar, Trash2, Pencil, Check, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -43,6 +44,7 @@ const initialDoctors: Doctor[] = [
 ];
 
 export default function Medici() {
+  const { canEdit } = useSubscription();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
   const [doctors, setDoctors] = useState(initialDoctors);
@@ -105,7 +107,7 @@ export default function Medici() {
     <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Medici</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>

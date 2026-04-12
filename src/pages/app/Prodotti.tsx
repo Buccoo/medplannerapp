@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { motion } from "framer-motion";
 import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -44,6 +45,7 @@ function getCurrentCycleIndex(): number {
 }
 
 export default function Prodotti() {
+  const { canEdit } = useSubscription();
   const [products, setProducts] = useState(initial);
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -91,7 +93,7 @@ export default function Prodotti() {
     <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Prodotti</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>

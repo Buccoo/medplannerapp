@@ -10,6 +10,7 @@ type SubscriptionContextType = {
   gracePeriodEndsAt: Date | null;
   trialEndsAt: Date | null;
   isAccessAllowed: boolean;
+  canEdit: boolean;
   isLoading: boolean;
   refresh: () => Promise<void>;
   checkout: (plan: "mensile" | "annuale") => Promise<void>;
@@ -80,8 +81,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     status === "loading" ||
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
+  const canEdit = status === "active" || status === "trialing" || status === "loading" ||
+    (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
+
   return (
-    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, isLoading, refresh, checkout }}>
+    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, canEdit, isLoading, refresh, checkout }}>
       {children}
     </SubscriptionContext.Provider>
   );
