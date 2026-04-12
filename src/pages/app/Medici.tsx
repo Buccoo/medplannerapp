@@ -333,6 +333,15 @@ export default function Medici() {
                 </button>
               </div>
 
+              {/* C-Client toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">C-Client</span>
+                <button onClick={() => updateDoctor({ ...selected, c_client: !selected.c_client })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${selected.c_client ? "bg-success" : "bg-secondary"}`}>
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.c_client ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+
               {/* Target class */}
               <div className="flex items-center justify-between">
                 <span className="text-sm">Target</span>
