@@ -29,6 +29,7 @@ type Doctor = {
   visits: number;
   office_hours: Record<string, string>;
   k_client: boolean;
+  c_client: boolean;
   target_class: string;
   last_visit_date?: string | null;
   last_visit_notes?: string | null;
@@ -134,6 +135,7 @@ export default function Medici() {
       phone: updated.phone,
       visits: updated.visits,
       k_client: updated.k_client,
+      c_client: updated.c_client,
       target_class: updated.target_class,
       office_hours: updated.office_hours,
       last_visit_date: updated.last_visit_date,
@@ -258,6 +260,7 @@ export default function Medici() {
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.microarea}</span>
                 {d.k_client && <span className="text-[10px] text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">K</span>}
+                {d.c_client && <span className="text-[10px] text-success bg-success/10 px-2 py-0.5 rounded-full font-medium">C</span>}
               </div>
             </div>
           </motion.div>
@@ -302,6 +305,7 @@ export default function Medici() {
                     <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
                     <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
                     {selected.k_client && <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>}
+                    {selected.c_client && <span className="text-xs bg-success/10 text-success px-2.5 py-1 rounded-full font-medium">C-Client</span>}
                   </div>
                   <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
                     <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
@@ -326,6 +330,15 @@ export default function Medici() {
                 <button onClick={() => updateDoctor({ ...selected, k_client: !selected.k_client })}
                   className={`relative w-11 h-6 rounded-full transition-colors ${selected.k_client ? "bg-primary" : "bg-secondary"}`}>
                   <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.k_client ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+
+              {/* C-Client toggle */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm">C-Client</span>
+                <button onClick={() => updateDoctor({ ...selected, c_client: !selected.c_client })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${selected.c_client ? "bg-success" : "bg-secondary"}`}>
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.c_client ? "translate-x-5" : ""}`} />
                 </button>
               </div>
 
