@@ -260,6 +260,7 @@ export default function Medici() {
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.microarea}</span>
                 {d.k_client && <span className="text-[10px] text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">K</span>}
+                {d.c_client && <span className="text-[10px] text-success bg-success/10 px-2 py-0.5 rounded-full font-medium">C</span>}
               </div>
             </div>
           </motion.div>
