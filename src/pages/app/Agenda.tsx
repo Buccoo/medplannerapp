@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { motion } from "framer-motion";
 import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
