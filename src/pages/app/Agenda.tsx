@@ -258,6 +258,19 @@ export default function Agenda() {
                     Nessun medico trovato
                   </div>
                 )}
+                {(() => {
+                  if (!selectedDoctorName) return null;
+                  const doc = doctors.find(d => d.name === selectedDoctorName);
+                  if (!doc?.office_hours) return null;
+                  const dayName = dayNameMap[selectedDate.getDay()];
+                  const hours = doc.office_hours[dayName];
+                  return (
+                    <div className={`mt-1.5 text-xs px-3 py-2 rounded-xl ${hours ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
+                      <Clock className="inline h-3 w-3 mr-1 -mt-0.5" />
+                      {hours ? `Ambulatorio ${dayName}: ${hours}` : `Nessun orario ambulatoriale per ${dayName}`}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
