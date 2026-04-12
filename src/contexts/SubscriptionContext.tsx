@@ -85,7 +85,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
   return (
-    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, isLoading, refresh, checkout }}>
+    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, canEdit, isLoading, refresh, checkout }}>
       {children}
     </SubscriptionContext.Provider>
   );
