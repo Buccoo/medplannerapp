@@ -85,6 +85,22 @@ export default function Medici() {
     window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
   };
 
+  const startEdit = () => {
+    if (!selected) return;
+    setEditData({ name: selected.name, specialty: selected.specialty, paese: selected.paese, microarea: selected.microarea, address: selected.address, phone: selected.phone });
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    if (!selected) return;
+    const updated = { ...selected, ...editData };
+    updateDoctor(updated);
+    setEditing(false);
+    toast.success("Medico aggiornato");
+  };
+
+  const cancelEdit = () => setEditing(false);
+
   return (
     <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-4">
