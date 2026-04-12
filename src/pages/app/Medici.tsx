@@ -29,6 +29,7 @@ type Doctor = {
   visits: number;
   office_hours: Record<string, string>;
   k_client: boolean;
+  c_client: boolean;
   target_class: string;
   last_visit_date?: string | null;
   last_visit_notes?: string | null;
