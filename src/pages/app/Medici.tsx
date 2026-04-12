@@ -109,7 +109,7 @@ export default function Medici() {
         <h1 className="text-2xl font-bold">Medici</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
+            <Button size="icon" className="rounded-full shadow-glow h-10 w-10" onClick={(e) => { if (!canEdit) { e.preventDefault(); toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); } }}><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Medico</DialogTitle></DialogHeader>

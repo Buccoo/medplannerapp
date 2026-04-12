@@ -95,7 +95,7 @@ export default function Prodotti() {
         <h1 className="text-2xl font-bold">Prodotti</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
+            <Button size="icon" className="rounded-full shadow-glow h-10 w-10" onClick={(e) => { if (!canEdit) { e.preventDefault(); toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); } }}><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl">
             <DialogHeader><DialogTitle>Nuovo Prodotto</DialogTitle></DialogHeader>
