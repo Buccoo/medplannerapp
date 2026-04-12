@@ -14,6 +14,213 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          address: string | null
+          booking_source: string | null
+          created_at: string
+          current_visit_notes: string | null
+          date: string
+          id: string
+          last_visit_date: string | null
+          last_visit_notes: string | null
+          microarea: string | null
+          name: string
+          next_appointment_draft: string | null
+          order_file: string | null
+          paese: string | null
+          phone: string | null
+          products: Json | null
+          secretary_notes: string | null
+          status: string
+          time: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          booking_source?: string | null
+          created_at?: string
+          current_visit_notes?: string | null
+          date: string
+          id?: string
+          last_visit_date?: string | null
+          last_visit_notes?: string | null
+          microarea?: string | null
+          name: string
+          next_appointment_draft?: string | null
+          order_file?: string | null
+          paese?: string | null
+          phone?: string | null
+          products?: Json | null
+          secretary_notes?: string | null
+          status?: string
+          time: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          booking_source?: string | null
+          created_at?: string
+          current_visit_notes?: string | null
+          date?: string
+          id?: string
+          last_visit_date?: string | null
+          last_visit_notes?: string | null
+          microarea?: string | null
+          name?: string
+          next_appointment_draft?: string | null
+          order_file?: string | null
+          paese?: string | null
+          phone?: string | null
+          products?: Json | null
+          secretary_notes?: string | null
+          status?: string
+          time?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      doctors: {
+        Row: {
+          address: string | null
+          created_at: string
+          current_visit_notes: string | null
+          id: string
+          k_client: boolean
+          last_visit_date: string | null
+          last_visit_notes: string | null
+          microarea: string | null
+          name: string
+          office_hours: Json | null
+          paese: string | null
+          phone: string | null
+          specialty: string
+          target_class: string | null
+          updated_at: string
+          user_id: string
+          visits: number
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          current_visit_notes?: string | null
+          id?: string
+          k_client?: boolean
+          last_visit_date?: string | null
+          last_visit_notes?: string | null
+          microarea?: string | null
+          name: string
+          office_hours?: Json | null
+          paese?: string | null
+          phone?: string | null
+          specialty?: string
+          target_class?: string | null
+          updated_at?: string
+          user_id: string
+          visits?: number
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          current_visit_notes?: string | null
+          id?: string
+          k_client?: boolean
+          last_visit_date?: string | null
+          last_visit_notes?: string | null
+          microarea?: string | null
+          name?: string
+          office_hours?: Json | null
+          paese?: string | null
+          phone?: string | null
+          specialty?: string
+          target_class?: string | null
+          updated_at?: string
+          user_id?: string
+          visits?: number
+        }
+        Relationships: []
+      }
+      pharmacies: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          microarea: string | null
+          name: string
+          notes: string | null
+          order_file: string | null
+          paese: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          microarea?: string | null
+          name: string
+          notes?: string | null
+          order_file?: string | null
+          paese?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          microarea?: string | null
+          name?: string
+          notes?: string | null
+          order_file?: string | null
+          paese?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          company_forecast: number
+          created_at: string
+          cycles: Json
+          id: string
+          name: string
+          sold: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_forecast?: number
+          created_at?: string
+          cycles?: Json
+          id?: string
+          name: string
+          sold?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_forecast?: number
+          created_at?: string
+          cycles?: Json
+          id?: string
+          name?: string
+          sold?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -80,6 +287,33 @@ export type Database = {
           trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          zona: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          zona?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          zona?: string | null
         }
         Relationships: []
       }
