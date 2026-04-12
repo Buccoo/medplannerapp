@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Calendar, Users, Package, ChevronRight, BarChart3, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   { icon: Calendar, title: "Agenda Smart", desc: "Organizza visite e appuntamenti con un calendario intuitivo." },
@@ -13,6 +14,7 @@ const features = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   return (
     <div className="min-h-screen gradient-hero">
