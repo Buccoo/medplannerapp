@@ -305,6 +305,7 @@ export default function Medici() {
                     <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
                     <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
                     {selected.k_client && <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>}
+                    {selected.c_client && <span className="text-xs bg-success/10 text-success px-2.5 py-1 rounded-full font-medium">C-Client</span>}
                   </div>
                   <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
                     <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
