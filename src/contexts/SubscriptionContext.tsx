@@ -10,6 +10,7 @@ type SubscriptionContextType = {
   gracePeriodEndsAt: Date | null;
   trialEndsAt: Date | null;
   isAccessAllowed: boolean;
+  canEdit: boolean;
   isLoading: boolean;
   refresh: () => Promise<void>;
   checkout: (plan: "mensile" | "annuale") => Promise<void>;
