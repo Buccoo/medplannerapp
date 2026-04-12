@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
-import { isSameDay } from "date-fns";
+
 
 const anim = (i: number) => ({ initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { delay: i * 0.08 } });
 
