@@ -135,6 +135,7 @@ export default function Medici() {
       phone: updated.phone,
       visits: updated.visits,
       k_client: updated.k_client,
+      c_client: updated.c_client,
       target_class: updated.target_class,
       office_hours: updated.office_hours,
       last_visit_date: updated.last_visit_date,
