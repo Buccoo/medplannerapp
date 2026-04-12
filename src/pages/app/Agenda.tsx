@@ -82,11 +82,26 @@ export default function Agenda() {
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
+  const [selectedPaese, setSelectedPaese] = useState("");
+
+  const uniquePaesi = useMemo(() => {
+    const set = new Set<string>();
+    doctors.forEach(d => {
+      if (d.paese?.trim()) set.add(d.paese.trim());
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+  }, [doctors]);
 
   const filteredDoctors = useMemo(() => {
-    if (!doctorSearch) return doctors;
-    return doctors.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
-  }, [doctors, doctorSearch]);
+    let list = doctors;
+    if (selectedPaese) {
+      list = list.filter(d => d.paese?.trim().toLowerCase() === selectedPaese.trim().toLowerCase());
+    }
+    if (doctorSearch) {
+      list = list.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
+    }
+    return list;
+  }, [doctors, doctorSearch, selectedPaese]);
 
   const fetchAppointments = async () => {
     if (!user) return;
