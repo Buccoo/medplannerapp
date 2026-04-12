@@ -44,6 +44,7 @@ const initialDoctors: Doctor[] = [
 ];
 
 export default function Medici() {
+  const { canEdit } = useSubscription();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
   const [doctors, setDoctors] = useState(initialDoctors);

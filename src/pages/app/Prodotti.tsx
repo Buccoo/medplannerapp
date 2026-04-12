@@ -45,6 +45,7 @@ function getCurrentCycleIndex(): number {
 }
 
 export default function Prodotti() {
+  const { canEdit } = useSubscription();
   const [products, setProducts] = useState(initial);
   const [open, setOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<number | null>(null);

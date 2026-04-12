@@ -105,6 +105,7 @@ const statusLabels: Record<AppointmentStatus, string> = {
 };
 
 export default function Agenda() {
+  const { canEdit } = useSubscription();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [appointments, setAppointments] = useState(initialAppointments);

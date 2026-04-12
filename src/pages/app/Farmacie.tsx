@@ -29,6 +29,7 @@ const initial: Pharmacy[] = [
 ];
 
 export default function Farmacie() {
+  const { canEdit } = useSubscription();
   const [search, setSearch] = useState("");
   const [pharmacies, setPharmacies] = useState(initial);
   const [open, setOpen] = useState(false);
