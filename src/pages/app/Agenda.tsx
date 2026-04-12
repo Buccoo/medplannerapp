@@ -23,6 +23,11 @@ import {
   isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO
 } from "date-fns";
 import { it } from "date-fns/locale";
+
+const dayNameMap: Record<number, string> = {
+  0: "Domenica", 1: "Lunedì", 2: "Martedì", 3: "Mercoledì",
+  4: "Giovedì", 5: "Venerdì", 6: "Sabato",
+};
 import type { Json } from "@/integrations/supabase/types";
 
 type AppointmentStatus = "programmato" | "confermato" | "completato";
