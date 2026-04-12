@@ -217,9 +217,9 @@ export default function Agenda() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setAddOpen(v); }}>
           <DialogTrigger asChild>
-            <Button size="icon" className="rounded-full shadow-glow h-10 w-10" onClick={(e) => { if (!canEdit) { e.preventDefault(); toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); } }}><Plus className="h-5 w-5" /></Button>
+            <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
