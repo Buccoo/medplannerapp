@@ -48,6 +48,8 @@ export default function Medici() {
   const [doctors, setDoctors] = useState(initialDoctors);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Doctor | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<Doctor>>({});
 
   const filtered = doctors.filter(d =>
     (filterSpec === "all" || d.specialty === filterSpec) &&
