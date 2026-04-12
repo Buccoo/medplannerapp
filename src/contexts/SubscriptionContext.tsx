@@ -81,6 +81,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     status === "loading" ||
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
+  const canEdit = status === "active" || status === "trialing" || status === "loading" ||
+    (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
+
   return (
     <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, isLoading, refresh, checkout }}>
       {children}
