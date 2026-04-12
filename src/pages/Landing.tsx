@@ -24,8 +24,14 @@ export default function Landing() {
           <span className="text-gradient">Med</span>Planner
         </span>
         <div className="flex gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Accedi</Button>
-          <Button size="sm" className="shadow-glow" onClick={() => navigate("/login?mode=register")}>Inizia Gratis</Button>
+          {!loading && user ? (
+            <Button size="sm" className="shadow-glow" onClick={() => navigate("/app")}>Vai all'App</Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Accedi</Button>
+              <Button size="sm" className="shadow-glow" onClick={() => navigate("/login?mode=register")}>Inizia Gratis</Button>
+            </>
+          )}
         </div>
       </nav>
 
