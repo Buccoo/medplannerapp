@@ -136,6 +136,7 @@ export default function Agenda() {
     if (!user) return;
     const fd = new FormData(e.currentTarget);
     const doctorName = fd.get("name") as string;
+    if (!doctorName) { toast.error("Seleziona un medico"); return; }
     const doctor = doctors.find(d => d.name === doctorName);
     const { error } = await supabase.from("appointments").insert({
       user_id: user.id,
