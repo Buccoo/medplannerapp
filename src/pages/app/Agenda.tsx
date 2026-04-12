@@ -23,6 +23,11 @@ import {
   isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO
 } from "date-fns";
 import { it } from "date-fns/locale";
+
+const dayNameMap: Record<number, string> = {
+  0: "Domenica", 1: "Lunedì", 2: "Martedì", 3: "Mercoledì",
+  4: "Giovedì", 5: "Venerdì", 6: "Sabato",
+};
 import type { Json } from "@/integrations/supabase/types";
 
 type AppointmentStatus = "programmato" | "confermato" | "completato";
@@ -72,7 +77,7 @@ export default function Agenda() {
   const [addOpen, setAddOpen] = useState(false);
   const [detailApp, setDetailApp] = useState<Appointment | null>(null);
   const [editingTime, setEditingTime] = useState(false);
-  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string }[]>([]);
+  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
@@ -107,8 +112,8 @@ export default function Agenda() {
 
   const fetchDoctors = async () => {
     if (!user) return;
-    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea").order("name");
-    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "" })));
+    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours").order("name");
+    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
   };
 
   useEffect(() => { fetchAppointments(); fetchDoctors(); }, [user]);
@@ -253,6 +258,19 @@ export default function Agenda() {
                     Nessun medico trovato
                   </div>
                 )}
+                {(() => {
+                  if (!selectedDoctorName) return null;
+                  const doc = doctors.find(d => d.name === selectedDoctorName);
+                  if (!doc?.office_hours) return null;
+                  const dayName = dayNameMap[selectedDate.getDay()];
+                  const hours = doc.office_hours[dayName];
+                  return (
+                    <div className={`mt-1.5 text-xs px-3 py-2 rounded-xl ${hours ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"}`}>
+                      <Clock className="inline h-3 w-3 mr-1 -mt-0.5" />
+                      {hours ? `Ambulatorio ${dayName}: ${hours}` : `Nessun orario ambulatoriale per ${dayName}`}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
