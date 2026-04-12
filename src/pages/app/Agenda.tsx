@@ -74,6 +74,14 @@ export default function Agenda() {
   const [editingTime, setEditingTime] = useState(false);
   const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [doctorSearch, setDoctorSearch] = useState("");
+  const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
+  const [selectedDoctorName, setSelectedDoctorName] = useState("");
+
+  const filteredDoctors = useMemo(() => {
+    if (!doctorSearch) return doctors;
+    return doctors.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
+  }, [doctors, doctorSearch]);
 
   const fetchAppointments = async () => {
     if (!user) return;
