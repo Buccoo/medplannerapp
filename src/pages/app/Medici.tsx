@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Search, Plus, Phone, MapPin, Clock, Calendar, Trash2, Pencil, Check, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -13,9 +15,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 const weekDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
+const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
+const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
 
 type Doctor = {
-  id: number;
+  id: string;
   name: string;
   specialty: string;
   paese: string;
@@ -23,68 +27,88 @@ type Doctor = {
   phone: string;
   address: string;
   visits: number;
-  officeHours: Record<string, string>;
-  kClient: boolean;
-  targetClass: "A" | "B" | "C" | "";
-  lastVisitDate?: string;
-  lastVisitNotes?: string;
-  currentVisitNotes?: string;
+  office_hours: Record<string, string>;
+  k_client: boolean;
+  target_class: string;
+  last_visit_date?: string | null;
+  last_visit_notes?: string | null;
+  current_visit_notes?: string | null;
 };
-
-const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
-
-const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
-
-const initialDoctors: Doctor[] = [
-  { id: 1, name: "Dr. Marco Bianchi", specialty: "INT", paese: "Milano", microarea: "Milano Nord", address: "Via Roma 12, Milano", phone: "+39 02 1234567", visits: 12, kClient: true, targetClass: "A", officeHours: { ...emptyHours(), "Lunedì": "09:00-13:00", "Mercoledì": "14:00-18:00" }, lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX" },
-  { id: 2, name: "Dr.ssa Laura Verdi", specialty: "PED", paese: "Milano", microarea: "Milano Centro", address: "Corso Italia 5, Milano", phone: "+39 02 7654321", visits: 8, kClient: false, targetClass: "B", officeHours: emptyHours() },
-  { id: 3, name: "Dr. Giuseppe Russo", specialty: "MMG", paese: "Milano", microarea: "Milano Sud", address: "Via Dante 8, Milano", phone: "+39 02 9876543", visits: 15, kClient: true, targetClass: "A", officeHours: emptyHours() },
-  { id: 4, name: "Dr.ssa Anna Esposito", specialty: "ORL", paese: "Monza", microarea: "Monza", address: "Via Monza 20, Monza", phone: "+39 039 1234567", visits: 6, kClient: false, targetClass: "C", officeHours: emptyHours() },
-  { id: 5, name: "Dr. Paolo Ferrari", specialty: "GASTRO", paese: "Bergamo", microarea: "Bergamo", address: "Via Bergamo 10, Bergamo", phone: "+39 035 7654321", visits: 10, kClient: false, targetClass: "", officeHours: emptyHours() },
-];
 
 export default function Medici() {
   const { canEdit } = useSubscription();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
-  const [doctors, setDoctors] = useState(initialDoctors);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Doctor | null>(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Doctor>>({});
+  const [loading, setLoading] = useState(true);
+
+  const fetchDoctors = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("doctors").select("*").order("name");
+    if (error) { console.error(error); return; }
+    setDoctors((data || []).map(d => ({
+      ...d,
+      paese: d.paese || "",
+      microarea: d.microarea || "",
+      address: d.address || "",
+      phone: d.phone || "",
+      target_class: d.target_class || "",
+      office_hours: (d.office_hours as Record<string, string>) || emptyHours(),
+    })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDoctors(); }, [user]);
 
   const filtered = doctors.filter(d =>
     (filterSpec === "all" || d.specialty === filterSpec) &&
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     const fd = new FormData(e.currentTarget);
-    setDoctors(prev => [...prev, {
-      id: Date.now(),
+    const { error } = await supabase.from("doctors").insert({
+      user_id: user.id,
       name: fd.get("name") as string,
       specialty: fd.get("specialty") as string,
       paese: fd.get("paese") as string,
       microarea: fd.get("microarea") as string,
       address: fd.get("address") as string,
       phone: fd.get("phone") as string,
-      visits: 0,
-      kClient: false,
-      targetClass: "",
-      officeHours: emptyHours(),
-    }]);
+      office_hours: emptyHours(),
+    });
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setOpen(false);
     toast.success("Medico aggiunto");
+    fetchDoctors();
   };
 
-  const updateDoctor = (updated: Doctor) => {
-    setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d));
+  const updateDoctor = async (updated: Doctor) => {
+    const { error } = await supabase.from("doctors").update({
+      name: updated.name,
+      specialty: updated.specialty,
+      paese: updated.paese,
+      microarea: updated.microarea,
+      address: updated.address,
+      phone: updated.phone,
+      visits: updated.visits,
+      k_client: updated.k_client,
+      target_class: updated.target_class,
+      office_hours: updated.office_hours,
+      last_visit_date: updated.last_visit_date,
+      last_visit_notes: updated.last_visit_notes,
+      current_visit_notes: updated.current_visit_notes,
+    }).eq("id", updated.id);
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setSelected(updated);
-  };
-
-  const openMaps = (address: string) => {
-    window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
+    setDoctors(prev => prev.map(d => d.id === updated.id ? updated : d));
   };
 
   const startEdit = () => {
@@ -103,6 +127,12 @@ export default function Medici() {
 
   const cancelEdit = () => setEditing(false);
 
+  const openMaps = (address: string) => {
+    window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
+  };
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+
   return (
     <div className="px-5 pt-6 pb-24">
       <div className="flex items-center justify-between mb-4">
@@ -117,7 +147,7 @@ export default function Medici() {
               <div className="space-y-2"><Label>Nome</Label><Input name="name" required className="rounded-xl" placeholder="Dr. Mario Rossi" /></div>
               <div className="space-y-2">
                 <Label>Specializzazione</Label>
-                <Select name="specialty" defaultValue="Medico di Base">
+                <Select name="specialty" defaultValue="MMG">
                   <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                   <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                 </Select>
@@ -132,7 +162,6 @@ export default function Medici() {
         </Dialog>
       </div>
 
-      {/* Search & Filter */}
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Cerca medico..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-xl" />
@@ -144,19 +173,14 @@ export default function Medici() {
         ))}
       </div>
 
-      {/* List */}
       <div className="space-y-3">
+        {filtered.length === 0 && <div className="text-center py-12 text-muted-foreground text-sm">Nessun medico</div>}
         {filtered.map((d, i) => (
-          <motion.div
-            key={d.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
+          <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             onClick={() => setSelected(d)}
-            className="glass rounded-2xl p-4 shadow-soft flex items-center gap-4 cursor-pointer hover:shadow-glow transition-shadow"
-          >
+            className="glass rounded-2xl p-4 shadow-soft flex items-center gap-4 cursor-pointer hover:shadow-glow transition-shadow">
             <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-              {d.name.split(" ").slice(-1)[0][0]}
+              {d.name.split(" ").slice(-1)[0]?.[0] || "?"}
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium truncate">{d.name}</p>
@@ -164,32 +188,25 @@ export default function Medici() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.microarea}</span>
-                {d.kClient && <span className="text-[10px] text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">K</span>}
+                {d.k_client && <span className="text-[10px] text-warning bg-warning/10 px-2 py-0.5 rounded-full font-medium">K</span>}
               </div>
             </div>
           </motion.div>
         ))}
       </div>
 
-      {/* Detail Sheet */}
-      <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
-         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
+      <Sheet open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditing(false); } }}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
           {selected && (
             <div className="space-y-5">
               <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle className="text-left">{selected.name}</SheetTitle>
                 {!editing ? (
-                  <Button size="icon" variant="ghost" onClick={startEdit} className="rounded-full h-8 w-8">
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  <Button size="icon" variant="ghost" onClick={startEdit} className="rounded-full h-8 w-8"><Pencil className="h-4 w-4" /></Button>
                 ) : (
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={cancelEdit} className="rounded-full h-8 w-8">
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button size="icon" onClick={saveEdit} className="rounded-full h-8 w-8">
-                      <Check className="h-4 w-4" />
-                    </Button>
+                    <Button size="icon" variant="ghost" onClick={cancelEdit} className="rounded-full h-8 w-8"><X className="h-4 w-4" /></Button>
+                    <Button size="icon" onClick={saveEdit} className="rounded-full h-8 w-8"><Check className="h-4 w-4" /></Button>
                   </div>
                 )}
               </SheetHeader>
@@ -211,58 +228,42 @@ export default function Medici() {
                 </div>
               ) : (
                 <>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{selected.specialty}</span>
-                <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
-                <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
-                {selected.kClient && (
-                  <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>
-                )}
-              </div>
-
-              {/* Phone */}
-              <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
-                <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-success" />
-                </div>
-                <span className="text-sm text-primary">{selected.phone}</span>
-              </button>
-
-              {/* Address */}
-              {selected.address && (
-                <button onClick={() => openMaps(selected.address)} className="flex items-center gap-3 w-full text-left">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <MapPin className="h-4 w-4 text-primary" />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{selected.specialty}</span>
+                    <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
+                    <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
+                    {selected.k_client && <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>}
                   </div>
-                  <span className="text-sm text-primary underline">{selected.address}</span>
-                </button>
-              )}
-
-              {/* Visits count */}
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </div>
-                <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
-              </div>
+                  <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
+                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
+                    <span className="text-sm text-primary">{selected.phone}</span>
+                  </button>
+                  {selected.address && (
+                    <button onClick={() => openMaps(selected.address)} className="flex items-center gap-3 w-full text-left">
+                      <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="h-4 w-4 text-primary" /></div>
+                      <span className="text-sm text-primary underline">{selected.address}</span>
+                    </button>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><Calendar className="h-4 w-4 text-muted-foreground" /></div>
+                    <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
+                  </div>
                 </>
               )}
 
               {/* K-Client toggle */}
               <div className="flex items-center justify-between">
                 <span className="text-sm">K-Client</span>
-                <button
-                  onClick={() => updateDoctor({ ...selected, kClient: !selected.kClient })}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${selected.kClient ? "bg-primary" : "bg-secondary"}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.kClient ? "translate-x-5" : ""}`} />
+                <button onClick={() => updateDoctor({ ...selected, k_client: !selected.k_client })}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${selected.k_client ? "bg-primary" : "bg-secondary"}`}>
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.k_client ? "translate-x-5" : ""}`} />
                 </button>
               </div>
 
               {/* Target class */}
               <div className="flex items-center justify-between">
                 <span className="text-sm">Target</span>
-                <Select value={selected.targetClass || ""} onValueChange={(v) => updateDoctor({ ...selected, targetClass: v as "A" | "B" | "C" | "" })}>
+                <Select value={selected.target_class || ""} onValueChange={(v) => updateDoctor({ ...selected, target_class: v })}>
                   <SelectTrigger className="w-24 rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="A">A</SelectItem>
@@ -272,10 +273,10 @@ export default function Medici() {
                 </Select>
               </div>
 
-              {selected.lastVisitDate && (
+              {selected.last_visit_date && (
                 <div className="bg-secondary/50 rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Ultima visita: {selected.lastVisitDate}</p>
-                  <p className="text-sm">{selected.lastVisitNotes || "—"}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Ultima visita: {selected.last_visit_date}</p>
+                  <p className="text-sm">{selected.last_visit_notes || "—"}</p>
                 </div>
               )}
 
@@ -288,37 +289,22 @@ export default function Medici() {
                   {weekDays.map(day => (
                     <div key={day} className="flex items-center gap-3">
                       <span className="text-xs font-medium w-20 shrink-0">{day}</span>
-                      <Input
-                        value={selected.officeHours[day] || ""}
-                        onChange={(e) => updateDoctor({
-                          ...selected,
-                          officeHours: { ...selected.officeHours, [day]: e.target.value }
-                        })}
-                        className="rounded-lg h-8 text-xs"
-                        placeholder="es. 09:00-13:00"
-                      />
+                      <Input value={selected.office_hours[day] || ""} onChange={(e) => updateDoctor({ ...selected, office_hours: { ...selected.office_hours, [day]: e.target.value } })}
+                        className="rounded-lg h-8 text-xs" placeholder="es. 09:00-13:00" />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Notes */}
               <div>
                 <Label className="text-xs text-muted-foreground mb-1 block">Note visita corrente</Label>
-                <Textarea
-                  value={selected.currentVisitNotes || ""}
-                  onChange={(e) => updateDoctor({ ...selected, currentVisitNotes: e.target.value })}
-                  className="rounded-xl min-h-[80px]"
-                  placeholder="Scrivi note..."
-                />
+                <Textarea value={selected.current_visit_notes || ""} onChange={(e) => updateDoctor({ ...selected, current_visit_notes: e.target.value })}
+                  className="rounded-xl min-h-[80px]" placeholder="Scrivi note..." />
               </div>
 
-              {/* Delete */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full rounded-xl gap-2">
-                    <Trash2 className="h-4 w-4" /> Elimina Medico
-                  </Button>
+                  <Button variant="destructive" className="w-full rounded-xl gap-2"><Trash2 className="h-4 w-4" /> Elimina Medico</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="rounded-3xl">
                   <AlertDialogHeader>
@@ -327,7 +313,8 @@ export default function Medici() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-                    <AlertDialogAction className="rounded-xl" onClick={() => {
+                    <AlertDialogAction className="rounded-xl" onClick={async () => {
+                      await supabase.from("doctors").delete().eq("id", selected.id);
                       setDoctors(prev => prev.filter(d => d.id !== selected.id));
                       setSelected(null);
                       toast.success("Medico eliminato");

@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -10,77 +12,79 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
-type CycleTargets = {
-  month1: number;
-  month2: number;
-  month3: number;
-};
+type CycleTargets = { month1: number; month2: number; month3: number };
 
 type Product = {
-  id: number;
+  id: string;
   name: string;
   cycles: CycleTargets[];
   sold: number;
-  companyForecast: number; // totale previsto dall'azienda
+  company_forecast: number;
 };
 
-const cycleLabels = [
-  ["Gen", "Feb", "Mar"],
-  ["Apr", "Mag", "Giu"],
-  ["Lug", "Ago", "Set"],
-  ["Ott", "Nov", "Dic"],
-];
-
-const initial: Product[] = [
-  { id: 1, name: "CardioX 100mg", cycles: [{ month1: 40, month2: 40, month3: 40 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 95, companyForecast: 500 },
-  { id: 2, name: "NeuroFlex 50mg", cycles: [{ month1: 25, month2: 25, month3: 30 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 62, companyForecast: 300 },
-  { id: 3, name: "GastroPro 200mg", cycles: [{ month1: 70, month2: 65, month3: 65 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 180, companyForecast: 800 },
-  { id: 4, name: "ImmunoVit Plus", cycles: [{ month1: 50, month2: 50, month3: 50 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 88, companyForecast: 600 },
-  { id: 5, name: "DermaShield Crema", cycles: [{ month1: 20, month2: 20, month3: 20 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }, { month1: 0, month2: 0, month3: 0 }], sold: 60, companyForecast: 250 },
-];
+const cycleLabels = [["Gen", "Feb", "Mar"], ["Apr", "Mag", "Giu"], ["Lug", "Ago", "Set"], ["Ott", "Nov", "Dic"]];
 
 function getCurrentCycleIndex(): number {
-  const month = new Date().getMonth();
-  return Math.floor(month / 3);
+  return Math.floor(new Date().getMonth() / 3);
 }
 
 export default function Prodotti() {
   const { canEdit } = useSubscription();
-  const [products, setProducts] = useState(initial);
+  const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
   const [open, setOpen] = useState(false);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingCycle, setEditingCycle] = useState<number>(getCurrentCycleIndex());
+  const [loading, setLoading] = useState(true);
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+  const fetchProducts = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("products").select("*").order("name");
+    if (error) { console.error(error); return; }
+    setProducts((data || []).map(p => ({
+      ...p,
+      cycles: (p.cycles as unknown as CycleTargets[]) || Array(4).fill(null).map(() => ({ month1: 0, month2: 0, month3: 0 })),
+    })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchProducts(); }, [user]);
+
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     const fd = new FormData(e.currentTarget);
-    const emptyCycles: CycleTargets[] = Array(4).fill(null).map(() => ({ month1: 0, month2: 0, month3: 0 }));
-    setProducts(prev => [...prev, {
-      id: Date.now(),
+    const emptyCycles = Array(4).fill(null).map(() => ({ month1: 0, month2: 0, month3: 0 }));
+    const { error } = await supabase.from("products").insert({
+      user_id: user.id,
       name: fd.get("name") as string,
-      cycles: emptyCycles,
       sold: Number(fd.get("sold") || 0),
-      companyForecast: Number(fd.get("forecast") || 0),
-    }]);
+      company_forecast: Number(fd.get("forecast") || 0),
+      cycles: emptyCycles,
+    });
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setOpen(false);
     toast.success("Prodotto aggiunto");
+    fetchProducts();
   };
 
-  const updateCycleTarget = (productId: number, cycleIdx: number, monthKey: keyof CycleTargets, value: number) => {
-    setProducts(prev => prev.map(p => {
-      if (p.id !== productId) return p;
-      const newCycles = [...p.cycles];
-      newCycles[cycleIdx] = { ...newCycles[cycleIdx], [monthKey]: value };
-      return { ...p, cycles: newCycles };
-    }));
+  const updateProduct = async (updated: Product) => {
+    const { error } = await supabase.from("products").update({
+      name: updated.name,
+      cycles: updated.cycles as unknown as Record<string, unknown>[],
+      sold: updated.sold,
+      company_forecast: updated.company_forecast,
+    }).eq("id", updated.id);
+    if (error) { toast.error("Errore nel salvataggio"); return; }
+    setProducts(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
-  const updateCompanyForecast = (productId: number, value: number) => {
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, companyForecast: value } : p));
-  };
-
-  const getTotalTarget = (p: Product) => {
-    return p.cycles.reduce((sum, c) => sum + c.month1 + c.month2 + c.month3, 0);
+  const updateCycleTarget = (productId: string, cycleIdx: number, monthKey: keyof CycleTargets, value: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    const newCycles = [...product.cycles];
+    newCycles[cycleIdx] = { ...newCycles[cycleIdx], [monthKey]: value };
+    updateProduct({ ...product, cycles: newCycles });
   };
 
   const getCurrentCycleTarget = (p: Product) => {
@@ -88,6 +92,10 @@ export default function Prodotti() {
     const c = p.cycles[ci];
     return c.month1 + c.month2 + c.month3;
   };
+
+  const getTotalTarget = (p: Product) => p.cycles.reduce((sum, c) => sum + c.month1 + c.month2 + c.month3, 0);
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="px-5 pt-6 pb-24">
@@ -113,6 +121,7 @@ export default function Prodotti() {
       </div>
 
       <div className="space-y-3">
+        {products.length === 0 && <div className="text-center py-12 text-muted-foreground text-sm">Nessun prodotto</div>}
         {products.map((p, i) => {
           const cycleTarget = getCurrentCycleTarget(p);
           const pct = cycleTarget > 0 ? Math.min(100, Math.round((p.sold / cycleTarget) * 100)) : 0;
@@ -120,23 +129,13 @@ export default function Prodotti() {
           const isExpanded = expandedId === p.id;
 
           return (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="glass rounded-2xl shadow-soft overflow-hidden"
-            >
-              {/* Summary row */}
+            <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+              className="glass rounded-2xl shadow-soft overflow-hidden">
               <div className="p-4 cursor-pointer" onClick={() => setExpandedId(isExpanded ? null : p.id)}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="font-medium">{p.name}</p>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      isComplete ? "bg-success/10 text-success" : "bg-primary/10 text-primary"
-                    }`}>
-                      {pct}%
-                    </span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isComplete ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{pct}%</span>
                     {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                   </div>
                 </div>
@@ -145,54 +144,32 @@ export default function Prodotti() {
                   <span>{p.sold} venduti</span>
                   <span className="flex items-center gap-0.5"><TrendingUp className="h-3 w-3" />Target ciclo: {cycleTarget}</span>
                 </div>
-                {p.companyForecast > 0 && (
+                {p.company_forecast > 0 && (
                   <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
-                    <Building className="h-3 w-3" />
-                    Previsto azienda: {p.companyForecast} pz
+                    <Building className="h-3 w-3" /> Previsto azienda: {p.company_forecast} pz
                   </div>
                 )}
               </div>
 
-              {/* Expanded: Cycle target table + company forecast */}
               {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  className="px-4 pb-4"
-                >
-                  {/* Company forecast */}
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} className="px-4 pb-4">
                   <div className="flex items-center gap-3 mb-3 bg-primary/5 rounded-xl p-3">
                     <Building className="h-4 w-4 text-primary shrink-0" />
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground mb-1">Totale previsto azienda</p>
-                      <Input
-                        type="number"
-                        min={0}
-                        value={p.companyForecast}
-                        onChange={(e) => updateCompanyForecast(p.id, Number(e.target.value) || 0)}
-                        className="rounded-lg h-8 text-sm"
-                      />
+                      <Input type="number" min={0} value={p.company_forecast}
+                        onChange={(e) => updateProduct({ ...p, company_forecast: Number(e.target.value) || 0 })}
+                        className="rounded-lg h-8 text-sm" />
                     </div>
                   </div>
-
-                  {/* Cycle selector tabs */}
                   <div className="flex gap-1 mb-3">
                     {cycleLabels.map((_, ci) => (
-                      <button
-                        key={ci}
-                        onClick={() => setEditingCycle(ci)}
-                        className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${
-                          editingCycle === ci
-                            ? "bg-primary text-primary-foreground font-medium"
-                            : "bg-secondary text-muted-foreground"
-                        }`}
-                      >
+                      <button key={ci} onClick={() => setEditingCycle(ci)}
+                        className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${editingCycle === ci ? "bg-primary text-primary-foreground font-medium" : "bg-secondary text-muted-foreground"}`}>
                         Ciclo {ci + 1}
                       </button>
                     ))}
                   </div>
-
-                  {/* Month inputs */}
                   <div className="bg-secondary/50 rounded-xl p-3">
                     <div className="grid grid-cols-3 gap-2">
                       {cycleLabels[editingCycle].map((monthName, mi) => {
@@ -200,13 +177,9 @@ export default function Prodotti() {
                         return (
                           <div key={monthName} className="text-center">
                             <p className="text-xs text-muted-foreground mb-1.5 font-medium">{monthName}</p>
-                            <Input
-                              type="number"
-                              min={0}
-                              value={p.cycles[editingCycle][monthKey]}
+                            <Input type="number" min={0} value={p.cycles[editingCycle][monthKey]}
                               onChange={(e) => updateCycleTarget(p.id, editingCycle, monthKey, Number(e.target.value) || 0)}
-                              className="rounded-lg text-center h-9 text-sm"
-                            />
+                              className="rounded-lg text-center h-9 text-sm" />
                           </div>
                         );
                       })}
@@ -216,13 +189,9 @@ export default function Prodotti() {
                       <span>Totale anno: {getTotalTarget(p)} pz</span>
                     </div>
                   </div>
-
-                  {/* Delete */}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm" className="w-full rounded-xl gap-2 mt-3">
-                        <Trash2 className="h-4 w-4" /> Elimina Prodotto
-                      </Button>
+                      <Button variant="destructive" size="sm" className="w-full rounded-xl gap-2 mt-3"><Trash2 className="h-4 w-4" /> Elimina Prodotto</Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="rounded-3xl">
                       <AlertDialogHeader>
@@ -231,7 +200,8 @@ export default function Prodotti() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-                        <AlertDialogAction className="rounded-xl" onClick={() => {
+                        <AlertDialogAction className="rounded-xl" onClick={async () => {
+                          await supabase.from("products").delete().eq("id", p.id);
                           setProducts(prev => prev.filter(pr => pr.id !== p.id));
                           setExpandedId(null);
                           toast.success("Prodotto eliminato");
