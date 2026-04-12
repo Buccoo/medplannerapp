@@ -236,13 +236,25 @@ export default function Agenda() {
     <div className="px-4 pt-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); } setAddOpen(v); }}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
           <DialogContent className="rounded-3xl max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>Paese</Label>
+                <Select value={selectedPaese} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutti i paesi" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Tutti i paesi</SelectItem>
+                    {uniquePaesi.map(p => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5 relative">
                 <Label>Medico</Label>
                 <input type="hidden" name="name" value={selectedDoctorName} />
@@ -250,17 +262,19 @@ export default function Agenda() {
                   value={doctorSearch}
                   onChange={(e) => { setDoctorSearch(e.target.value); setSelectedDoctorName(""); setShowDoctorSuggestions(true); }}
                   onFocus={() => setShowDoctorSuggestions(true)}
+                  onBlur={() => { setTimeout(() => setShowDoctorSuggestions(false), 200); }}
                   placeholder="Cerca medico..."
                   className="rounded-xl"
                   autoComplete="off"
                 />
-                {showDoctorSuggestions && filteredDoctors.length > 0 && (
+                {showDoctorSuggestions && filteredDoctors.length > 0 && !selectedDoctorName && (
                   <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {filteredDoctors.map(d => (
                       <button
                         key={d.name}
                         type="button"
                         className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors first:rounded-t-xl last:rounded-b-xl"
+                        onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { setDoctorSearch(d.name); setSelectedDoctorName(d.name); setShowDoctorSuggestions(false); }}
                       >
                         {d.name}
@@ -268,7 +282,7 @@ export default function Agenda() {
                     ))}
                   </div>
                 )}
-                {showDoctorSuggestions && doctorSearch && filteredDoctors.length === 0 && (
+                {showDoctorSuggestions && doctorSearch && filteredDoctors.length === 0 && !selectedDoctorName && (
                   <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg px-3 py-2 text-sm text-muted-foreground">
                     Nessun medico trovato
                   </div>
@@ -290,7 +304,7 @@ export default function Agenda() {
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" /></div>
-              <div className="space-y-1.5"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" /></div>
+              <div className="space-y-1.5"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" defaultValue={selectedPaese} /></div>
               <div className="space-y-1.5"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" /></div>
               <div className="space-y-1.5">
                 <Label>Provenienza</Label>
