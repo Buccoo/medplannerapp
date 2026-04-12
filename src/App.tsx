@@ -17,6 +17,7 @@ import Medici from "./pages/app/Medici";
 import Farmacie from "./pages/app/Farmacie";
 import Prodotti from "./pages/app/Prodotti";
 import Impostazioni from "./pages/app/Impostazioni";
+import AdminDashboard from "./pages/app/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Termini from "./pages/Termini";
@@ -44,6 +45,7 @@ const App = () => (
                   <Route path="farmacie" element={<Farmacie />} />
                   <Route path="prodotti" element={<Prodotti />} />
                   <Route path="impostazioni" element={<Impostazioni />} />
+                  <Route path="admin" element={<AdminDashboard />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>
