@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { Search, Plus, MapPin, Phone, FileSpreadsheet, Upload, StickyNote, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -12,63 +14,82 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 type Pharmacy = {
-  id: number;
+  id: string;
   name: string;
   address: string;
   phone: string;
   paese: string;
   microarea: string;
   notes: string;
-  orderFile?: string;
+  order_file?: string | null;
 };
-
-const initial: Pharmacy[] = [
-  { id: 1, name: "Farmacia Centrale", address: "Via Roma 12, Milano", phone: "+39 02 1111111", paese: "Milano", microarea: "Milano Centro", notes: "" },
-  { id: 2, name: "Farmacia San Marco", address: "Piazza Duomo 3, Milano", phone: "+39 02 2222222", paese: "Milano", microarea: "Milano Nord", notes: "" },
-  { id: 3, name: "Farmacia della Stazione", address: "Via Vittorio 45, Monza", phone: "+39 039 3333333", paese: "Monza", microarea: "Brianza", notes: "" },
-];
 
 export default function Farmacie() {
   const { canEdit } = useSubscription();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const [pharmacies, setPharmacies] = useState(initial);
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Pharmacy | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPharmacies = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("pharmacies").select("*").order("name");
+    if (error) { console.error(error); return; }
+    setPharmacies((data || []).map(p => ({
+      ...p,
+      address: p.address || "",
+      phone: p.phone || "",
+      paese: p.paese || "",
+      microarea: p.microarea || "",
+      notes: p.notes || "",
+    })));
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchPharmacies(); }, [user]);
 
   const filtered = pharmacies.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     const fd = new FormData(e.currentTarget);
-    setPharmacies(prev => [...prev, {
-      id: Date.now(),
+    const { error } = await supabase.from("pharmacies").insert({
+      user_id: user.id,
       name: fd.get("name") as string,
       address: fd.get("address") as string,
       phone: fd.get("phone") as string,
       paese: fd.get("paese") as string,
       microarea: fd.get("microarea") as string,
-      notes: "",
-    }]);
+    });
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setOpen(false);
     toast.success("Farmacia aggiunta");
+    fetchPharmacies();
   };
 
-  const updatePharmacy = (updated: Pharmacy) => {
-    setPharmacies(prev => prev.map(p => p.id === updated.id ? updated : p));
+  const updatePharmacy = async (updated: Pharmacy) => {
+    const { error } = await supabase.from("pharmacies").update({
+      name: updated.name,
+      address: updated.address,
+      phone: updated.phone,
+      paese: updated.paese,
+      microarea: updated.microarea,
+      notes: updated.notes,
+      order_file: updated.order_file,
+    }).eq("id", updated.id);
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setSelected(updated);
-  };
-
-  const handleFileUpload = (pharmacy: Pharmacy, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      updatePharmacy({ ...pharmacy, orderFile: file.name });
-      toast.success(`File "${file.name}" caricato`);
-    }
+    setPharmacies(prev => prev.map(p => p.id === updated.id ? updated : p));
   };
 
   const openMaps = (address: string) => {
     window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
   };
+
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
   return (
     <div className="px-5 pt-6 pb-24">
@@ -98,15 +119,10 @@ export default function Farmacie() {
       </div>
 
       <div className="space-y-3">
+        {filtered.length === 0 && <div className="text-center py-12 text-muted-foreground text-sm">Nessuna farmacia</div>}
         {filtered.map((p, i) => (
-          <motion.div
-            key={p.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={() => setSelected(p)}
-            className="glass rounded-2xl p-4 shadow-soft cursor-pointer hover:shadow-glow transition-shadow"
-          >
+          <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            onClick={() => setSelected(p)} className="glass rounded-2xl p-4 shadow-soft cursor-pointer hover:shadow-glow transition-shadow">
             <p className="font-medium mb-1">{p.name}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{p.address}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5"><Phone className="h-3 w-3" />{p.phone}</p>
@@ -118,76 +134,30 @@ export default function Farmacie() {
         ))}
       </div>
 
-      {/* Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
           {selected && (
             <div className="space-y-5">
-              <SheetHeader>
-                <SheetTitle className="text-left">{selected.name}</SheetTitle>
-              </SheetHeader>
-
-              {/* Paese & Microarea */}
+              <SheetHeader><SheetTitle className="text-left">{selected.name}</SheetTitle></SheetHeader>
               <div className="flex items-center gap-2">
                 <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
                 <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.microarea}</span>
               </div>
-
-              {/* Phone */}
               <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
-                <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center">
-                  <Phone className="h-4 w-4 text-success" />
-                </div>
+                <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
                 <span className="text-sm text-primary">{selected.phone}</span>
               </button>
-
-              {/* Address */}
               <button onClick={() => openMaps(selected.address)} className="flex items-center gap-3 w-full text-left">
-                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <MapPin className="h-4 w-4 text-primary" />
-                </div>
+                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="h-4 w-4 text-primary" /></div>
                 <span className="text-sm text-primary underline">{selected.address}</span>
               </button>
-
-              {/* Notes */}
               <div>
-                <Label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1">
-                  <StickyNote className="h-3 w-3" /> Note
-                </Label>
-                <Textarea
-                  value={selected.notes}
-                  onChange={(e) => updatePharmacy({ ...selected, notes: e.target.value })}
-                  className="rounded-xl min-h-[80px]"
-                  placeholder="Scrivi note sulla farmacia..."
-                />
+                <Label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1"><StickyNote className="h-3 w-3" /> Note</Label>
+                <Textarea value={selected.notes} onChange={(e) => updatePharmacy({ ...selected, notes: e.target.value })} className="rounded-xl min-h-[80px]" placeholder="Scrivi note sulla farmacia..." />
               </div>
-
-              {/* Excel upload */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Copia Excel ultimo ordine</Label>
-                <label className="flex items-center gap-2 glass rounded-xl p-3 cursor-pointer shadow-soft">
-                  <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                    {selected.orderFile ? <FileSpreadsheet className="h-4 w-4 text-success" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{selected.orderFile || "Carica file Excel"}</p>
-                    <p className="text-[10px] text-muted-foreground">.xlsx, .xls</p>
-                  </div>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(selected, e)}
-                  />
-                </label>
-              </div>
-
-              {/* Delete */}
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="w-full rounded-xl gap-2">
-                    <Trash2 className="h-4 w-4" /> Elimina Farmacia
-                  </Button>
+                  <Button variant="destructive" className="w-full rounded-xl gap-2"><Trash2 className="h-4 w-4" /> Elimina Farmacia</Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="rounded-3xl">
                   <AlertDialogHeader>
@@ -196,7 +166,8 @@ export default function Farmacie() {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
-                    <AlertDialogAction className="rounded-xl" onClick={() => {
+                    <AlertDialogAction className="rounded-xl" onClick={async () => {
+                      await supabase.from("pharmacies").delete().eq("id", selected.id);
                       setPharmacies(prev => prev.filter(p => p.id !== selected.id));
                       setSelected(null);
                       toast.success("Farmacia eliminata");
