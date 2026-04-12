@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Calendar, Users, Package, ChevronRight, BarChart3, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const features = [
   { icon: Calendar, title: "Agenda Smart", desc: "Organizza visite e appuntamenti con un calendario intuitivo." },
@@ -13,6 +14,7 @@ const features = [
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   return (
     <div className="min-h-screen gradient-hero">
@@ -22,8 +24,14 @@ export default function Landing() {
           <span className="text-gradient">Med</span>Planner
         </span>
         <div className="flex gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Accedi</Button>
-          <Button size="sm" className="shadow-glow" onClick={() => navigate("/login?mode=register")}>Inizia Gratis</Button>
+          {!loading && user ? (
+            <Button size="sm" className="shadow-glow" onClick={() => navigate("/app")}>Vai all'App</Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Accedi</Button>
+              <Button size="sm" className="shadow-glow" onClick={() => navigate("/login?mode=register")}>Inizia Gratis</Button>
+            </>
+          )}
         </div>
       </nav>
 
@@ -41,10 +49,18 @@ export default function Landing() {
             MedPlanner è l'app pensata per l'Informatore Scientifico del Farmaco: gestisci medici, farmacie e target di vendita in un'unica interfaccia elegante.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button size="lg" className="shadow-glow text-base px-8" onClick={() => navigate("/login?mode=register")}>
-              Inizia Ora <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-            <Button size="lg" variant="outline" className="text-base" onClick={() => navigate("/login")}>Accedi</Button>
+            {!loading && user ? (
+              <Button size="lg" className="shadow-glow text-base px-8" onClick={() => navigate("/app")}>
+                Vai all'App <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              <>
+                <Button size="lg" className="shadow-glow text-base px-8" onClick={() => navigate("/login?mode=register")}>
+                  Inizia Ora <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+                <Button size="lg" variant="outline" className="text-base" onClick={() => navigate("/login")}>Accedi</Button>
+              </>
+            )}
           </div>
         </motion.div>
       </section>
