@@ -17,29 +17,28 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `Sei un parser di dati medici italiani. Estrai le informazioni del medico dal testo fornito e restituiscile in formato strutturato usando la funzione fornita. 
+            content: `Sei un parser di dati medici italiani. Estrai le informazioni del medico dal testo fornito usando la funzione fornita.
 Regole:
 - Il nome deve essere in formato "Dr. Nome Cognome" (prima lettera maiuscola, resto minuscolo)
 - Per specialty: MMG = medico generico/di base, PED = pediatra, ORL, GIN, INT, GASTRO. Default: MMG
 - L'indirizzo deve includere via e città
 - Per gli orari, usa il formato "HH:MM - HH:MM" per ogni giorno della settimana
 - Se un giorno non ha orario, lascia stringa vuota
-- Il paese è la città/comune dell'ambulatorio
-- Microarea è l'area/zona geografica (opzionale)`,
+- Il paese è la città/comune dell'ambulatorio`,
           },
           { role: "user", content: text },
         ],
@@ -52,8 +51,8 @@ Regole:
               parameters: {
                 type: "object",
                 properties: {
-                  name: { type: "string", description: "Nome completo del medico (es. Dr. Mario Rossi)" },
-                  specialty: { type: "string", enum: ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"], description: "Specializzazione" },
+                  name: { type: "string", description: "Nome completo del medico" },
+                  specialty: { type: "string", enum: ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"] },
                   paese: { type: "string", description: "Città/Comune" },
                   microarea: { type: "string", description: "Area geografica" },
                   address: { type: "string", description: "Indirizzo completo" },
@@ -67,7 +66,6 @@ Regole:
                       "Giovedì": { type: "string" },
                       "Venerdì": { type: "string" },
                     },
-                    description: "Orari di ricevimento per ogni giorno",
                   },
                 },
                 required: ["name", "specialty"],
@@ -81,19 +79,11 @@ Regole:
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Troppe richieste, riprova tra poco." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Crediti AI esauriti." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const t = await response.text();
-      console.error("AI error:", response.status, t);
-      throw new Error("AI gateway error");
+      console.error("OpenAI error:", response.status, t);
+      return new Response(JSON.stringify({ error: "Errore OpenAI" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const data = await response.json();
