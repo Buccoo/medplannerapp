@@ -89,6 +89,7 @@ export type Database = {
       doctors: {
         Row: {
           address: string | null
+          c_client: boolean
           created_at: string
           current_visit_notes: string | null
           id: string
@@ -108,6 +109,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          c_client?: boolean
           created_at?: string
           current_visit_notes?: string | null
           id?: string
@@ -127,6 +129,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          c_client?: boolean
           created_at?: string
           current_visit_notes?: string | null
           id?: string

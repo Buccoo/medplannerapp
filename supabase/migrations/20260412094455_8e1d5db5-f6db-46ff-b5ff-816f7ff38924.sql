@@ -1,0 +1,1 @@
+ALTER TABLE public.doctors ADD COLUMN c_client boolean NOT NULL DEFAULT false;
