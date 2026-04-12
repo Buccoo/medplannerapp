@@ -171,13 +171,44 @@ export default function Medici() {
 
       {/* Detail Sheet */}
       <Sheet open={!!selected} onOpenChange={(open) => { if (!open) setSelected(null); }}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
+         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
           {selected && (
             <div className="space-y-5">
-              <SheetHeader>
+              <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle className="text-left">{selected.name}</SheetTitle>
+                {!editing ? (
+                  <Button size="icon" variant="ghost" onClick={startEdit} className="rounded-full h-8 w-8">
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <div className="flex gap-1">
+                    <Button size="icon" variant="ghost" onClick={cancelEdit} className="rounded-full h-8 w-8">
+                      <X className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" onClick={saveEdit} className="rounded-full h-8 w-8">
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </SheetHeader>
 
+              {editing ? (
+                <div className="space-y-3">
+                  <div className="space-y-1"><Label className="text-xs">Nome</Label><Input value={editData.name || ""} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Specializzazione</Label>
+                    <Select value={editData.specialty || ""} onValueChange={v => setEditData(p => ({ ...p, specialty: v }))}>
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                      <SelectContent>{specialties.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1"><Label className="text-xs">Paese</Label><Input value={editData.paese || ""} onChange={e => setEditData(p => ({ ...p, paese: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Microarea</Label><Input value={editData.microarea || ""} onChange={e => setEditData(p => ({ ...p, microarea: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Indirizzo</Label><Input value={editData.address || ""} onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Telefono</Label><Input value={editData.phone || ""} onChange={e => setEditData(p => ({ ...p, phone: e.target.value }))} className="rounded-xl" /></div>
+                </div>
+              ) : (
+                <>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{selected.specialty}</span>
                 <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{selected.paese}</span>
@@ -185,30 +216,6 @@ export default function Medici() {
                 {selected.kClient && (
                   <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>
                 )}
-              </div>
-
-              {/* K-Client toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm">K-Client</span>
-                <button
-                  onClick={() => updateDoctor({ ...selected, kClient: !selected.kClient })}
-                  className={`relative w-11 h-6 rounded-full transition-colors ${selected.kClient ? "bg-primary" : "bg-secondary"}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${selected.kClient ? "translate-x-5" : ""}`} />
-                </button>
-              </div>
-
-              {/* Target class */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Target</span>
-                <Select value={selected.targetClass || ""} onValueChange={(v) => updateDoctor({ ...selected, targetClass: v as "A" | "B" | "C" | "" })}>
-                  <SelectTrigger className="w-24 rounded-xl h-8 text-sm"><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="A">A</SelectItem>
-                    <SelectItem value="B">B</SelectItem>
-                    <SelectItem value="C">C</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Phone */}
@@ -236,6 +243,8 @@ export default function Medici() {
                 </div>
                 <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
               </div>
+                </>
+              )}
 
               {/* Last visit info */}
               {selected.lastVisitDate && (
