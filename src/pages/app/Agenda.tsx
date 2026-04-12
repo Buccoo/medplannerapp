@@ -107,8 +107,8 @@ export default function Agenda() {
 
   const fetchDoctors = async () => {
     if (!user) return;
-    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea").order("name");
-    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "" })));
+    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours").order("name");
+    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
   };
 
   useEffect(() => { fetchAppointments(); fetchDoctors(); }, [user]);
