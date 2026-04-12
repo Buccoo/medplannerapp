@@ -71,7 +71,7 @@ export default function Prodotti() {
   const updateProduct = async (updated: Product) => {
     const { error } = await supabase.from("products").update({
       name: updated.name,
-      cycles: updated.cycles as unknown as Record<string, unknown>[],
+      cycles: JSON.parse(JSON.stringify(updated.cycles)),
       sold: updated.sold,
       company_forecast: updated.company_forecast,
     }).eq("id", updated.id);
