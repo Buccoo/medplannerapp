@@ -1,5 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
@@ -14,28 +16,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import {
   format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, isSameMonth, addMonths, subMonths, addWeeks, subWeeks, getDay
+  isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO
 } from "date-fns";
 import { it } from "date-fns/locale";
-
-const PRODUCTS_LIST = ["CardioX 100mg", "NeuroFlex 50mg", "GastroPro 200mg", "ImmunoVit Plus", "DermaShield Crema"];
-
-const DOCTORS_LIST = [
-  { name: "Dr. Marco Bianchi", phone: "+39 02 1234567", address: "Via Roma 12, Milano", paese: "Milano", microarea: "Milano Nord" },
-  { name: "Dr.ssa Laura Verdi", phone: "+39 02 7654321", address: "Corso Italia 5, Milano", paese: "Milano", microarea: "Milano Centro" },
-  { name: "Dr. Giuseppe Russo", phone: "+39 02 9876543", address: "Via Dante 8, Milano", paese: "Milano", microarea: "Milano Sud" },
-  { name: "Dr.ssa Anna Esposito", phone: "+39 039 1234567", address: "Via Monza 20, Monza", paese: "Monza", microarea: "Monza" },
-  { name: "Dr. Paolo Ferrari", phone: "+39 035 7654321", address: "Via Bergamo 10, Bergamo", paese: "Bergamo", microarea: "Bergamo" },
-];
+import type { Json } from "@/integrations/supabase/types";
 
 type AppointmentStatus = "programmato" | "confermato" | "completato";
 type BookingSource = "Ambulatorio" | "WA" | "MioDottore";
 
 type Appointment = {
-  id: number;
+  id: string;
   date: Date;
   time: string;
   name: string;
@@ -45,51 +39,17 @@ type Appointment = {
   address: string;
   paese: string;
   microarea: string;
-  bookingSource: BookingSource;
-  lastVisitDate?: string;
-  lastVisitNotes?: string;
-  currentVisitNotes: string;
-  secretaryNotes: string;
-  nextAppointmentDraft: string;
+  booking_source: BookingSource;
+  last_visit_date?: string | null;
+  last_visit_notes?: string | null;
+  current_visit_notes: string;
+  secretary_notes: string;
+  next_appointment_draft: string;
   products: { name: string; qty: number }[];
-  orderFile?: string;
+  order_file?: string | null;
 };
 
 const today = new Date();
-
-const initialAppointments: Appointment[] = [
-  {
-    id: 1, date: today, time: "09:00", name: "Dr. Bianchi", type: "medico",
-    status: "confermato", phone: "+393331234567", address: "Via Roma 12, Milano",
-    paese: "Milano", microarea: "Milano Nord",
-    bookingSource: "Ambulatorio", lastVisitDate: "2025-06-01", lastVisitNotes: "Discusso CardioX",
-    currentVisitNotes: "", secretaryNotes: "", nextAppointmentDraft: "",
-    products: [{ name: "CardioX 100mg", qty: 10 }]
-  },
-  {
-    id: 2, date: today, time: "10:30", name: "Farmacia Centrale", type: "farmacia",
-    status: "completato", phone: "+393339876543", address: "Corso Italia 5, Milano",
-    paese: "Milano", microarea: "Milano Centro",
-    bookingSource: "WA", lastVisitDate: "2025-05-28", lastVisitNotes: "Ordine mensile confermato",
-    currentVisitNotes: "", secretaryNotes: "", nextAppointmentDraft: "",
-    products: [{ name: "GastroPro 200mg", qty: 20 }]
-  },
-  {
-    id: 3, date: today, time: "14:00", name: "Dr.ssa Verdi", type: "medico",
-    status: "programmato", phone: "+393335556677", address: "Via Dante 8, Roma",
-    paese: "Roma", microarea: "Roma Centro",
-    bookingSource: "MioDottore", currentVisitNotes: "", secretaryNotes: "",
-    nextAppointmentDraft: "", products: []
-  },
-  {
-    id: 4, date: addDays(today, 1), time: "16:00", name: "Dr. Russo", type: "medico",
-    status: "programmato", phone: "+393332223344", address: "Piazza Duomo 3, Napoli",
-    paese: "Napoli", microarea: "Napoli Centro",
-    bookingSource: "Ambulatorio", currentVisitNotes: "", secretaryNotes: "",
-    nextAppointmentDraft: "", products: []
-  },
-];
-
 type ViewMode = "day" | "week" | "month";
 
 const statusColors: Record<AppointmentStatus, string> = {
@@ -97,7 +57,6 @@ const statusColors: Record<AppointmentStatus, string> = {
   confermato: "bg-primary/10 text-primary",
   completato: "bg-success/10 text-success",
 };
-
 const statusLabels: Record<AppointmentStatus, string> = {
   programmato: "Programmato",
   confermato: "Confermato",
@@ -106,12 +65,45 @@ const statusLabels: Record<AppointmentStatus, string> = {
 
 export default function Agenda() {
   const { canEdit } = useSubscription();
+  const { user } = useAuth();
   const [selectedDate, setSelectedDate] = useState(today);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [appointments, setAppointments] = useState(initialAppointments);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [detailApp, setDetailApp] = useState<Appointment | null>(null);
   const [editingTime, setEditingTime] = useState(false);
+  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAppointments = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("appointments").select("*").order("date").order("time");
+    if (error) { console.error(error); return; }
+    setAppointments((data || []).map(a => ({
+      ...a,
+      date: parseISO(a.date),
+      type: a.type as "medico" | "farmacia",
+      status: a.status as AppointmentStatus,
+      phone: a.phone || "",
+      address: a.address || "",
+      paese: a.paese || "",
+      microarea: a.microarea || "",
+      booking_source: (a.booking_source || "Ambulatorio") as BookingSource,
+      current_visit_notes: a.current_visit_notes || "",
+      secretary_notes: a.secretary_notes || "",
+      next_appointment_draft: a.next_appointment_draft || "",
+      products: (a.products as unknown as { name: string; qty: number }[]) || [],
+    })));
+    setLoading(false);
+  };
+
+  const fetchDoctors = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea").order("name");
+    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "" })));
+  };
+
+  useEffect(() => { fetchAppointments(); fetchDoctors(); }, [user]);
 
   const navigateDate = (dir: 1 | -1) => {
     if (viewMode === "day") setSelectedDate(prev => addDays(prev, dir));
@@ -121,48 +113,63 @@ export default function Agenda() {
 
   const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
   const monthStart = startOfMonth(selectedDate);
   const monthEnd = endOfMonth(selectedDate);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const firstDayOffset = (getDay(monthStart) + 6) % 7;
 
   const getAppointmentsForDate = (date: Date) =>
-    appointments.filter(a => a.type === "medico" && isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
+    appointments.filter(a => isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
 
   const todayAppointments = getAppointmentsForDate(selectedDate);
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!user) return;
     const fd = new FormData(e.currentTarget);
-    const newApp: Appointment = {
-      id: Date.now(),
-      date: selectedDate,
+    const doctorName = fd.get("name") as string;
+    const doctor = doctors.find(d => d.name === doctorName);
+    const { error } = await supabase.from("appointments").insert({
+      user_id: user.id,
+      date: format(selectedDate, "yyyy-MM-dd"),
       time: fd.get("time") as string,
-      name: fd.get("name") as string,
-      type: "medico" as const,
-      status: "programmato",
-      phone: fd.get("phone") as string || "",
-      address: fd.get("address") as string || "",
-      paese: fd.get("paese") as string || "",
-      microarea: fd.get("microarea") as string || "",
-      bookingSource: fd.get("source") as BookingSource || "Ambulatorio",
-      currentVisitNotes: "",
-      secretaryNotes: "",
-      nextAppointmentDraft: "",
-      products: [],
-    };
-    setAppointments(prev => [...prev, newApp]);
+      name: doctorName,
+      type: "medico",
+      phone: fd.get("phone") as string || doctor?.phone || "",
+      address: fd.get("address") as string || doctor?.address || "",
+      paese: fd.get("paese") as string || doctor?.paese || "",
+      microarea: fd.get("microarea") as string || doctor?.microarea || "",
+      booking_source: fd.get("source") as string || "Ambulatorio",
+    });
+    if (error) { toast.error("Errore nel salvataggio"); return; }
     setAddOpen(false);
     toast.success("Appuntamento aggiunto");
+    fetchAppointments();
   };
 
-  const updateAppointment = (updated: Appointment) => {
-    setAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
+  const updateAppointment = async (updated: Appointment) => {
+    const { error } = await supabase.from("appointments").update({
+      time: updated.time,
+      name: updated.name,
+      status: updated.status,
+      phone: updated.phone,
+      address: updated.address,
+      paese: updated.paese,
+      microarea: updated.microarea,
+      booking_source: updated.booking_source,
+      current_visit_notes: updated.current_visit_notes,
+      secretary_notes: updated.secretary_notes,
+      next_appointment_draft: updated.next_appointment_draft,
+      products: JSON.parse(JSON.stringify(updated.products)),
+      order_file: updated.order_file,
+    }).eq("id", updated.id);
+    if (error) { toast.error("Errore"); return; }
     setDetailApp(updated);
+    setAppointments(prev => prev.map(a => a.id === updated.id ? updated : a));
   };
 
-  const deleteAppointment = (id: number) => {
+  const deleteAppointment = async (id: string) => {
+    await supabase.from("appointments").delete().eq("id", id);
     setAppointments(prev => prev.filter(a => a.id !== id));
     setDetailApp(null);
     toast.success("Appuntamento eliminato");
@@ -175,35 +182,17 @@ export default function Agenda() {
     toast.success(`Stato: ${statusLabels[next]}`);
   };
 
-  const openMaps = (address: string) => {
-    window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
-  };
-
-  const callPhone = (phone: string) => {
-    window.open(`tel:${phone}`);
-  };
-
-  const handleFileUpload = (app: Appointment, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      updateAppointment({ ...app, orderFile: file.name });
-      toast.success(`File "${file.name}" caricato`);
-    }
-  };
+  const openMaps = (address: string) => window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
+  const callPhone = (phone: string) => window.open(`tel:${phone}`);
 
   const toggleProduct = (app: Appointment, productName: string) => {
     const exists = app.products.find(p => p.name === productName);
-    const newProducts = exists
-      ? app.products.filter(p => p.name !== productName)
-      : [...app.products, { name: productName, qty: 1 }];
+    const newProducts = exists ? app.products.filter(p => p.name !== productName) : [...app.products, { name: productName, qty: 1 }];
     updateAppointment({ ...app, products: newProducts });
   };
 
   const updateProductQty = (app: Appointment, productName: string, qty: number) => {
-    updateAppointment({
-      ...app,
-      products: app.products.map(p => p.name === productName ? { ...p, qty } : p)
-    });
+    updateAppointment({ ...app, products: app.products.map(p => p.name === productName ? { ...p, qty } : p) });
   };
 
   const headerTitle = useMemo(() => {
@@ -212,9 +201,10 @@ export default function Agenda() {
     return format(selectedDate, "MMMM yyyy", { locale: it });
   }, [selectedDate, viewMode, weekDays]);
 
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
+
   return (
     <div className="px-4 pt-4 pb-24">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
         <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } setAddOpen(v); }}>
@@ -229,9 +219,7 @@ export default function Agenda() {
                 <Select name="name" required>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona medico..." /></SelectTrigger>
                   <SelectContent>
-                    {DOCTORS_LIST.map(d => (
-                      <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>
-                    ))}
+                    {doctors.map(d => <SelectItem key={d.name} value={d.name}>{d.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -264,30 +252,18 @@ export default function Agenda() {
           { key: "week" as ViewMode, icon: CalendarRange, label: "Settimana" },
           { key: "month" as ViewMode, icon: CalendarIcon, label: "Mese" },
         ]).map(v => (
-          <button
-            key={v.key}
-            onClick={() => setViewMode(v.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
-              viewMode === v.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"
-            }`}
-          >
-            <v.icon className="h-3.5 w-3.5" />
-            {v.label}
+          <button key={v.key} onClick={() => setViewMode(v.key)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${viewMode === v.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground"}`}>
+            <v.icon className="h-3.5 w-3.5" />{v.label}
           </button>
         ))}
       </div>
 
       {/* Date navigation */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => navigateDate(-1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <button onClick={() => setSelectedDate(today)} className="text-sm font-semibold capitalize">
-          {headerTitle}
-        </button>
-        <button onClick={() => navigateDate(1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-          <ChevronRight className="h-4 w-4" />
-        </button>
+        <button onClick={() => navigateDate(-1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center"><ChevronLeft className="h-4 w-4" /></button>
+        <button onClick={() => setSelectedDate(today)} className="text-sm font-semibold capitalize">{headerTitle}</button>
+        <button onClick={() => navigateDate(1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center"><ChevronRight className="h-4 w-4" /></button>
       </div>
 
       {/* WEEK VIEW */}
@@ -298,22 +274,11 @@ export default function Agenda() {
             const isToday = isSameDay(day, today);
             const dayApps = getAppointmentsForDate(day);
             return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                className={`flex-1 rounded-2xl py-2.5 text-center transition-all ${
-                  isSelected ? "bg-primary shadow-glow" : "glass shadow-soft"
-                }`}
-              >
-                <p className={`text-[10px] ${isSelected ? "text-primary-foreground" : "text-muted-foreground"}`}>
-                  {format(day, "EEE", { locale: it })}
-                </p>
-                <p className={`text-base font-bold ${isSelected ? "text-primary-foreground" : isToday ? "text-primary" : "text-foreground"}`}>
-                  {format(day, "d")}
-                </p>
-                {dayApps.length > 0 && (
-                  <div className={`mx-auto mt-0.5 h-1 w-1 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
-                )}
+              <button key={day.toISOString()} onClick={() => setSelectedDate(day)}
+                className={`flex-1 rounded-2xl py-2.5 text-center transition-all ${isSelected ? "bg-primary shadow-glow" : "glass shadow-soft"}`}>
+                <p className={`text-[10px] ${isSelected ? "text-primary-foreground" : "text-muted-foreground"}`}>{format(day, "EEE", { locale: it })}</p>
+                <p className={`text-base font-bold ${isSelected ? "text-primary-foreground" : isToday ? "text-primary" : "text-foreground"}`}>{format(day, "d")}</p>
+                {dayApps.length > 0 && <div className={`mx-auto mt-0.5 h-1 w-1 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />}
               </button>
             );
           })}
@@ -335,17 +300,10 @@ export default function Agenda() {
               const isT = isSameDay(day, today);
               const dayApps = getAppointmentsForDate(day);
               return (
-                <button
-                  key={day.toISOString()}
-                  onClick={() => { setSelectedDate(day); setViewMode("day"); }}
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm transition-all ${
-                    isSelected ? "bg-primary text-primary-foreground" : isT ? "bg-primary/10 text-primary font-bold" : "text-foreground hover:bg-secondary"
-                  }`}
-                >
+                <button key={day.toISOString()} onClick={() => { setSelectedDate(day); setViewMode("day"); }}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center text-sm transition-all ${isSelected ? "bg-primary text-primary-foreground" : isT ? "bg-primary/10 text-primary font-bold" : "text-foreground hover:bg-secondary"}`}>
                   {format(day, "d")}
-                  {dayApps.length > 0 && (
-                    <div className={`h-1 w-1 rounded-full mt-0.5 ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />
-                  )}
+                  {dayApps.length > 0 && <div className={`h-1 w-1 rounded-full mt-0.5 ${isSelected ? "bg-primary-foreground" : "bg-primary"}`} />}
                 </button>
               );
             })}
@@ -359,49 +317,31 @@ export default function Agenda() {
           <div className="text-center py-12 text-muted-foreground text-sm">Nessun appuntamento</div>
         ) : (
           todayAppointments.map((a, i) => (
-            <motion.div
-              key={a.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06 }}
+            <motion.div key={a.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
               onClick={() => setDetailApp(a)}
-              className={`glass rounded-2xl p-4 shadow-soft flex items-center gap-3 cursor-pointer transition-opacity ${
-                a.status === "completato" ? "opacity-60" : ""
-              }`}
-            >
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                a.type === "medico" ? "bg-primary/10" : "bg-success/10"
-              }`}>
+              className={`glass rounded-2xl p-4 shadow-soft flex items-center gap-3 cursor-pointer transition-opacity ${a.status === "completato" ? "opacity-60" : ""}`}>
+              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${a.type === "medico" ? "bg-primary/10" : "bg-success/10"}`}>
                 {a.type === "medico" ? <User className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-success" />}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>{a.name}</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>
-                    {statusLabels[a.status]}
-                  </Badge>
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
                   <span className="text-[10px] text-muted-foreground">{a.paese}</span>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.bookingSource}</span>
+                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.booking_source}</span>
                 </div>
                 {a.address && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
-                    className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[180px] mt-0.5"
-                  >
+                  <button onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
+                    className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[180px] mt-0.5">
                     <MapPin className="h-2.5 w-2.5 shrink-0" />{a.address}
                   </button>
                 )}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {a.time}
-                </div>
-                <button
-                  onClick={(e) => { e.stopPropagation(); deleteAppointment(a.id); }}
-                  className="p-1 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" />{a.time}</div>
+                <button onClick={(e) => { e.stopPropagation(); changeStatus(a); }}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[a.status]}`}>
+                  {statusLabels[a.status]}
                 </button>
               </div>
             </motion.div>
@@ -413,199 +353,82 @@ export default function Agenda() {
       <Sheet open={!!detailApp} onOpenChange={(open) => { if (!open) { setDetailApp(null); setEditingTime(false); } }}>
         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
           {detailApp && (
-            <div className="space-y-5">
-              <SheetHeader>
-                <SheetTitle className="text-left">{detailApp.name}</SheetTitle>
-              </SheetHeader>
+            <div className="space-y-4">
+              <SheetHeader><SheetTitle className="text-left">{detailApp.name}</SheetTitle></SheetHeader>
 
-              {/* Status & quick actions */}
               <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => changeStatus(detailApp)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium ${statusColors[detailApp.status]}`}
-                >
-                  {statusLabels[detailApp.status]} ▸
-                </button>
-                <Badge variant="outline" className="text-xs">{detailApp.type === "medico" ? "Medico" : "Farmacia"}</Badge>
-                <Badge variant="outline" className="text-xs">{detailApp.bookingSource}</Badge>
+                <Badge variant="outline" className={`border-0 ${statusColors[detailApp.status]}`}>{statusLabels[detailApp.status]}</Badge>
                 <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.paese}</span>
                 <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.microarea}</span>
+                <span className="text-xs bg-secondary px-2 py-0.5 rounded-full">{detailApp.booking_source}</span>
               </div>
 
-              {/* Time (editable) - only for medico */}
-              {detailApp.type === "medico" && (
-                <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  {editingTime ? (
-                    <Input
-                      type="time"
-                      defaultValue={detailApp.time}
-                      className="rounded-xl w-32 h-8"
-                      autoFocus
-                      onBlur={(e) => {
-                        if (e.target.value) updateAppointment({ ...detailApp, time: e.target.value });
-                        setEditingTime(false);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-                      }}
-                    />
-                  ) : (
-                    <button onClick={() => setEditingTime(true)} className="text-sm font-medium hover:text-primary transition-colors">
-                      {detailApp.time} <span className="text-xs text-muted-foreground ml-1">(modifica)</span>
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Delete */}
-              <button
-                onClick={() => {
-                  setAppointments(prev => prev.filter(a => a.id !== detailApp.id));
-                  setDetailApp(null);
-                  toast.success("Appuntamento eliminato");
-                }}
-                className="flex items-center gap-3 w-full text-left"
-              >
-                <div className="h-9 w-9 rounded-xl bg-destructive/10 flex items-center justify-center">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </div>
-                <span className="text-sm text-destructive">Elimina appuntamento</span>
-              </button>
+              {/* Time edit */}
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><Clock className="h-4 w-4 text-primary" /></div>
+                {editingTime ? (
+                  <div className="flex items-center gap-2">
+                    <Input type="time" value={detailApp.time} onChange={e => updateAppointment({ ...detailApp, time: e.target.value })} className="rounded-lg h-8 w-28 text-sm" />
+                    <button onClick={() => setEditingTime(false)}><Check className="h-4 w-4 text-primary" /></button>
+                  </div>
+                ) : (
+                  <button onClick={() => setEditingTime(true)} className="text-sm font-medium">{detailApp.time} <span className="text-muted-foreground text-xs">(modifica)</span></button>
+                )}
+              </div>
 
               {detailApp.phone && (
                 <button onClick={() => callPhone(detailApp.phone)} className="flex items-center gap-3 w-full text-left">
-                  <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center">
-                    <Phone className="h-4 w-4 text-success" />
-                  </div>
+                  <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
                   <span className="text-sm text-primary">{detailApp.phone}</span>
                 </button>
               )}
 
-              {/* Address */}
               {detailApp.address && (
                 <button onClick={() => openMaps(detailApp.address)} className="flex items-center gap-3 w-full text-left">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <MapPin className="h-4 w-4 text-primary" />
-                  </div>
+                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="h-4 w-4 text-primary" /></div>
                   <span className="text-sm text-primary underline">{detailApp.address}</span>
                 </button>
               )}
 
-              {/* Last visit - only for medico */}
-              {detailApp.type === "medico" && detailApp.lastVisitDate && (
+              {detailApp.last_visit_date && (
                 <div className="bg-secondary/50 rounded-xl p-3">
-                  <p className="text-xs text-muted-foreground mb-1">Ultima visita: {detailApp.lastVisitDate}</p>
-                  <p className="text-sm">{detailApp.lastVisitNotes || "—"}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Ultima visita: {detailApp.last_visit_date}</p>
+                  <p className="text-sm">{detailApp.last_visit_notes || "—"}</p>
                 </div>
               )}
 
-              {/* Products - only for medico */}
-              {detailApp.type === "medico" && (
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-2 block">Prodotti discussi</Label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {PRODUCTS_LIST.map(pName => {
-                      const selected = detailApp.products.find(p => p.name === pName);
-                      return (
-                        <button
-                          key={pName}
-                          onClick={() => toggleProduct(detailApp, pName)}
-                          className={`text-xs px-2.5 py-1.5 rounded-lg transition-all ${
-                            selected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                          }`}
-                        >
-                          {selected && <Check className="h-3 w-3 inline mr-1" />}
-                          {pName}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {detailApp.products.length > 0 && (
-                    <div className="space-y-1.5">
-                      {detailApp.products.map(p => (
-                        <div key={p.name} className="flex items-center justify-between bg-secondary/50 rounded-lg px-3 py-1.5">
-                          <span className="text-xs">{p.name}</span>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={p.qty}
-                            onChange={(e) => updateProductQty(detailApp, p.name, Number(e.target.value) || 1)}
-                            className="w-16 h-7 text-xs text-center rounded-lg"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Note visita corrente</Label>
+                <Textarea value={detailApp.current_visit_notes} onChange={e => updateAppointment({ ...detailApp, current_visit_notes: e.target.value })} className="rounded-xl min-h-[60px]" placeholder="Scrivi note..." />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Note segreteria</Label>
+                <Textarea value={detailApp.secretary_notes} onChange={e => updateAppointment({ ...detailApp, secretary_notes: e.target.value })} className="rounded-xl min-h-[60px]" placeholder="Note segreteria..." />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Bozza prossimo appuntamento</Label>
+                <Input value={detailApp.next_appointment_draft} onChange={e => updateAppointment({ ...detailApp, next_appointment_draft: e.target.value })} className="rounded-xl" placeholder="es. Tra 2 settimane" />
+              </div>
 
-              {/* Notes - only for medico */}
-              {detailApp.type === "medico" && (
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Note visita corrente</Label>
-                    <Textarea
-                      value={detailApp.currentVisitNotes}
-                      onChange={(e) => updateAppointment({ ...detailApp, currentVisitNotes: e.target.value })}
-                      className="rounded-xl mt-1 min-h-[60px]"
-                      placeholder="Scrivi note..."
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Note per la segreteria</Label>
-                    <Textarea
-                      value={detailApp.secretaryNotes}
-                      onChange={(e) => updateAppointment({ ...detailApp, secretaryNotes: e.target.value })}
-                      className="rounded-xl mt-1 min-h-[60px]"
-                      placeholder="Note segreteria..."
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Bozza prossimo appuntamento</Label>
-                    <Textarea
-                      value={detailApp.nextAppointmentDraft}
-                      onChange={(e) => updateAppointment({ ...detailApp, nextAppointmentDraft: e.target.value })}
-                      className="rounded-xl mt-1 min-h-[60px]"
-                      placeholder="Prossimo appuntamento..."
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="flex gap-2">
+                <Button onClick={() => changeStatus(detailApp)} variant="outline" className="flex-1 rounded-xl">Cambia Stato</Button>
+              </div>
 
-              {/* Farmacia: only notes */}
-              {detailApp.type === "farmacia" && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Note</Label>
-                  <Textarea
-                    value={detailApp.currentVisitNotes}
-                    onChange={(e) => updateAppointment({ ...detailApp, currentVisitNotes: e.target.value })}
-                    className="rounded-xl mt-1 min-h-[60px]"
-                    placeholder="Scrivi note..."
-                  />
-                </div>
-              )}
-
-              {/* Excel upload - ONLY for farmacia */}
-              {detailApp.type === "farmacia" && (
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-2 block">Copia Excel ultimo ordine</Label>
-                  <label className="flex items-center gap-2 glass rounded-xl p-3 cursor-pointer shadow-soft">
-                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                      {detailApp.orderFile ? <FileSpreadsheet className="h-4 w-4 text-success" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate">{detailApp.orderFile || "Carica file Excel"}</p>
-                      <p className="text-[10px] text-muted-foreground">.xlsx, .xls</p>
-                    </div>
-                    <input
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      className="hidden"
-                      onChange={(e) => handleFileUpload(detailApp, e)}
-                    />
-                  </label>
-                </div>
-              )}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="w-full rounded-xl gap-2"><Trash2 className="h-4 w-4" /> Elimina</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-3xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Eliminare questo appuntamento?</AlertDialogTitle>
+                    <AlertDialogDescription>Questa azione è irreversibile.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Annulla</AlertDialogCancel>
+                    <AlertDialogAction className="rounded-xl" onClick={() => deleteAppointment(detailApp.id)}>Elimina</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </SheetContent>
