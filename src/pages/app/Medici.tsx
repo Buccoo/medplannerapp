@@ -42,12 +42,15 @@ export default function Medici() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
+  const [filterMicroarea, setFilterMicroarea] = useState("all");
+  const [filterPaese, setFilterPaese] = useState("all");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Doctor | null>(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Doctor>>({});
   const [loading, setLoading] = useState(true);
+  const [microareaTownsMap, setMicroareaTownsMap] = useState<Record<string, string[]>>({});
 
   // AI parsing state
   const [aiOpen, setAiOpen] = useState(false);
@@ -71,10 +74,33 @@ export default function Medici() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchDoctors(); }, [user]);
+  const fetchMicroareaTowns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_towns").select("microarea, town").eq("user_id", user.id);
+    if (!data) return;
+    const grouped: Record<string, string[]> = {};
+    data.forEach(r => {
+      if (!grouped[r.microarea]) grouped[r.microarea] = [];
+      grouped[r.microarea].push(r.town);
+    });
+    setMicroareaTownsMap(grouped);
+  };
+
+  useEffect(() => { fetchDoctors(); fetchMicroareaTowns(); }, [user]);
+
+  const uniquePaesi = useMemo(() => {
+    if (filterMicroarea !== "all" && microareaTownsMap[filterMicroarea]) {
+      return [...microareaTownsMap[filterMicroarea]].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    }
+    const set = new Set<string>();
+    doctors.forEach(d => { if (d.paese?.trim()) set.add(d.paese.trim()); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+  }, [doctors, filterMicroarea, microareaTownsMap]);
 
   const filtered = doctors.filter(d =>
     (filterSpec === "all" || d.specialty === filterSpec) &&
+    (filterMicroarea === "all" || d.microarea?.trim().toLowerCase() === filterMicroarea.trim().toLowerCase()) &&
+    (filterPaese === "all" || d.paese?.trim().toLowerCase() === filterPaese.trim().toLowerCase()) &&
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
