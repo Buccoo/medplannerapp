@@ -153,7 +153,7 @@ export default function Agenda() {
     setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
   };
 
-  useEffect(() => { fetchAppointments(); fetchDoctors(); }, [user]);
+  useEffect(() => { fetchAppointments(); fetchDoctors(); fetchMicroareaTowns(); }, [user]);
 
   const navigateDate = (dir: 1 | -1) => {
     if (viewMode === "day") setSelectedDate(prev => addDays(prev, dir));
