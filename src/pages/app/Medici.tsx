@@ -270,6 +270,22 @@ export default function Medici() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Cerca medico..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-xl" />
       </div>
+      <div className="flex gap-2 mb-3">
+        <Select value={filterMicroarea} onValueChange={(v) => { setFilterMicroarea(v); setFilterPaese("all"); }}>
+          <SelectTrigger className="rounded-xl w-1/2 text-xs h-9"><SelectValue placeholder="Microarea" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tutte le microaree</SelectItem>
+            {microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterPaese} onValueChange={setFilterPaese}>
+          <SelectTrigger className="rounded-xl w-1/2 text-xs h-9"><SelectValue placeholder="Paese" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tutti i paesi</SelectItem>
+            {uniquePaesi.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
         <button onClick={() => setFilterSpec("all")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterSpec === "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Tutti</button>
         {specialties.map(s => (
