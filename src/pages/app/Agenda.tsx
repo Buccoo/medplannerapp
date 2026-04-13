@@ -258,7 +258,7 @@ export default function Agenda() {
     <div className="px-4 pt-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); } setAddOpen(v); }}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); setSelectedMicroarea(""); } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
@@ -266,8 +266,18 @@ export default function Agenda() {
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
               <div className="space-y-1.5">
+                <Label>Microarea</Label>
+                <Select value={selectedMicroarea || "__all__"} onValueChange={(v) => { setSelectedMicroarea(v === "__all__" ? "" : v); setSelectedPaese(""); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutte le microaree" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Tutte le microaree</SelectItem>
+                    {MICROAREAS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>Paese</Label>
-                <Select value={selectedPaese} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                <Select value={selectedPaese || "__all__"} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutti i paesi" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Tutti i paesi</SelectItem>
