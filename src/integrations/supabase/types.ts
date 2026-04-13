@@ -149,6 +149,30 @@ export type Database = {
         }
         Relationships: []
       }
+      microarea_towns: {
+        Row: {
+          created_at: string
+          id: string
+          microarea: string
+          town: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          microarea: string
+          town: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          microarea?: string
+          town?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pharmacies: {
         Row: {
           address: string | null
