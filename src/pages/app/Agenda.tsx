@@ -83,17 +83,39 @@ export default function Agenda() {
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
   const [selectedPaese, setSelectedPaese] = useState("");
+  const [selectedMicroarea, setSelectedMicroarea] = useState("");
+  const [microareaTowns, setMicroareaTowns] = useState<Record<string, string[]>>({});
+
+  const MICROAREAS = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
+
+  const fetchMicroareaTowns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_towns").select("microarea, town").eq("user_id", user.id);
+    if (!data) return;
+    const grouped: Record<string, string[]> = {};
+    data.forEach(r => {
+      if (!grouped[r.microarea]) grouped[r.microarea] = [];
+      grouped[r.microarea].push(r.town);
+    });
+    setMicroareaTowns(grouped);
+  };
 
   const uniquePaesi = useMemo(() => {
+    if (selectedMicroarea && microareaTowns[selectedMicroarea]) {
+      return [...microareaTowns[selectedMicroarea]].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    }
     const set = new Set<string>();
     doctors.forEach(d => {
       if (d.paese?.trim()) set.add(d.paese.trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
-  }, [doctors]);
+  }, [doctors, selectedMicroarea, microareaTowns]);
 
   const filteredDoctors = useMemo(() => {
     let list = doctors;
+    if (selectedMicroarea) {
+      list = list.filter(d => d.microarea?.trim().toLowerCase() === selectedMicroarea.trim().toLowerCase());
+    }
     if (selectedPaese) {
       list = list.filter(d => d.paese?.trim().toLowerCase() === selectedPaese.trim().toLowerCase());
     }
@@ -101,7 +123,7 @@ export default function Agenda() {
       list = list.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
     }
     return list;
-  }, [doctors, doctorSearch, selectedPaese]);
+  }, [doctors, doctorSearch, selectedPaese, selectedMicroarea]);
 
   const fetchAppointments = async () => {
     if (!user) return;
