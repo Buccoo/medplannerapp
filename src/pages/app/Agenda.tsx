@@ -83,17 +83,39 @@ export default function Agenda() {
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
   const [selectedPaese, setSelectedPaese] = useState("");
+  const [selectedMicroarea, setSelectedMicroarea] = useState("");
+  const [microareaTowns, setMicroareaTowns] = useState<Record<string, string[]>>({});
+
+  const MICROAREAS = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
+
+  const fetchMicroareaTowns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_towns").select("microarea, town").eq("user_id", user.id);
+    if (!data) return;
+    const grouped: Record<string, string[]> = {};
+    data.forEach(r => {
+      if (!grouped[r.microarea]) grouped[r.microarea] = [];
+      grouped[r.microarea].push(r.town);
+    });
+    setMicroareaTowns(grouped);
+  };
 
   const uniquePaesi = useMemo(() => {
+    if (selectedMicroarea && microareaTowns[selectedMicroarea]) {
+      return [...microareaTowns[selectedMicroarea]].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    }
     const set = new Set<string>();
     doctors.forEach(d => {
       if (d.paese?.trim()) set.add(d.paese.trim());
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
-  }, [doctors]);
+  }, [doctors, selectedMicroarea, microareaTowns]);
 
   const filteredDoctors = useMemo(() => {
     let list = doctors;
+    if (selectedMicroarea) {
+      list = list.filter(d => d.microarea?.trim().toLowerCase() === selectedMicroarea.trim().toLowerCase());
+    }
     if (selectedPaese) {
       list = list.filter(d => d.paese?.trim().toLowerCase() === selectedPaese.trim().toLowerCase());
     }
@@ -101,7 +123,7 @@ export default function Agenda() {
       list = list.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
     }
     return list;
-  }, [doctors, doctorSearch, selectedPaese]);
+  }, [doctors, doctorSearch, selectedPaese, selectedMicroarea]);
 
   const fetchAppointments = async () => {
     if (!user) return;
@@ -131,7 +153,7 @@ export default function Agenda() {
     setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
   };
 
-  useEffect(() => { fetchAppointments(); fetchDoctors(); }, [user]);
+  useEffect(() => { fetchAppointments(); fetchDoctors(); fetchMicroareaTowns(); }, [user]);
 
   const navigateDate = (dir: 1 | -1) => {
     if (viewMode === "day") setSelectedDate(prev => addDays(prev, dir));
@@ -236,7 +258,7 @@ export default function Agenda() {
     <div className="px-4 pt-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); } setAddOpen(v); }}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); setSelectedMicroarea(""); } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
@@ -244,8 +266,18 @@ export default function Agenda() {
             <DialogHeader><DialogTitle>Nuovo Appuntamento</DialogTitle></DialogHeader>
             <form onSubmit={handleAdd} className="space-y-3">
               <div className="space-y-1.5">
+                <Label>Microarea</Label>
+                <Select value={selectedMicroarea || "__all__"} onValueChange={(v) => { setSelectedMicroarea(v === "__all__" ? "" : v); setSelectedPaese(""); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutte le microaree" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">Tutte le microaree</SelectItem>
+                    {MICROAREAS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
                 <Label>Paese</Label>
-                <Select value={selectedPaese} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                <Select value={selectedPaese || "__all__"} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutti i paesi" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Tutti i paesi</SelectItem>

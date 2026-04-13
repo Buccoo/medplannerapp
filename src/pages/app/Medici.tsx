@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,12 +42,15 @@ export default function Medici() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
+  const [filterMicroarea, setFilterMicroarea] = useState("all");
+  const [filterPaese, setFilterPaese] = useState("all");
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Doctor | null>(null);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Doctor>>({});
   const [loading, setLoading] = useState(true);
+  const [microareaTownsMap, setMicroareaTownsMap] = useState<Record<string, string[]>>({});
 
   // AI parsing state
   const [aiOpen, setAiOpen] = useState(false);
@@ -71,10 +74,33 @@ export default function Medici() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchDoctors(); }, [user]);
+  const fetchMicroareaTowns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_towns").select("microarea, town").eq("user_id", user.id);
+    if (!data) return;
+    const grouped: Record<string, string[]> = {};
+    data.forEach(r => {
+      if (!grouped[r.microarea]) grouped[r.microarea] = [];
+      grouped[r.microarea].push(r.town);
+    });
+    setMicroareaTownsMap(grouped);
+  };
+
+  useEffect(() => { fetchDoctors(); fetchMicroareaTowns(); }, [user]);
+
+  const uniquePaesi = useMemo(() => {
+    if (filterMicroarea !== "all" && microareaTownsMap[filterMicroarea]) {
+      return [...microareaTownsMap[filterMicroarea]].sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+    }
+    const set = new Set<string>();
+    doctors.forEach(d => { if (d.paese?.trim()) set.add(d.paese.trim()); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "it", { sensitivity: "base" }));
+  }, [doctors, filterMicroarea, microareaTownsMap]);
 
   const filtered = doctors.filter(d =>
     (filterSpec === "all" || d.specialty === filterSpec) &&
+    (filterMicroarea === "all" || d.microarea?.trim().toLowerCase() === filterMicroarea.trim().toLowerCase()) &&
+    (filterPaese === "all" || d.paese?.trim().toLowerCase() === filterPaese.trim().toLowerCase()) &&
     d.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -243,6 +269,22 @@ export default function Medici() {
       <div className="relative mb-3">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Cerca medico..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-xl" />
+      </div>
+      <div className="flex gap-2 mb-3">
+        <Select value={filterMicroarea} onValueChange={(v) => { setFilterMicroarea(v); setFilterPaese("all"); }}>
+          <SelectTrigger className="rounded-xl w-1/2 text-xs h-9"><SelectValue placeholder="Microarea" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tutte le microaree</SelectItem>
+            {microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterPaese} onValueChange={setFilterPaese}>
+          <SelectTrigger className="rounded-xl w-1/2 text-xs h-9"><SelectValue placeholder="Paese" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tutti i paesi</SelectItem>
+            {uniquePaesi.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
         <button onClick={() => setFilterSpec("all")} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${filterSpec === "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>Tutti</button>
