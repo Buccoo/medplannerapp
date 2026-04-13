@@ -84,6 +84,21 @@ Deno.serve(async (req) => {
       }
     }
 
+    // If DB says active/trialing and has a future period end, trust it even without Stripe customer
+    if (!customerId && sub.status === "active" && sub.current_period_end && new Date(sub.current_period_end) > new Date()) {
+      logStep("Active subscription from DB (no Stripe customer)", { status: sub.status, planType: sub.plan_type });
+      return new Response(JSON.stringify({
+        subscribed: true,
+        status: sub.status,
+        trial_ends_at: sub.trial_ends_at,
+        plan_type: sub.plan_type,
+        current_period_end: sub.current_period_end,
+        grace_period_ends_at: null,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (customerId) {
       // Check active/trialing subscriptions from Stripe directly
       const subscriptions = await stripe.subscriptions.list({
