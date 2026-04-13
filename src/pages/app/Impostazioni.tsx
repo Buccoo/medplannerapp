@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Check, LogOut, CreditCard, Save } from "lucide-react";
+import { ArrowLeft, Check, LogOut, CreditCard, Save, Plus, X, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAccentColor } from "@/contexts/AccentColorContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+const MICROAREAS = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
+
 export default function Impostazioni() {
   const navigate = useNavigate();
   const { accentHsl, setAccentHsl, colors } = useAccentColor();
@@ -21,6 +23,11 @@ export default function Impostazioni() {
   const [zona, setZona] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Microarea towns state
+  const [microareaTowns, setMicroareaTowns] = useState<Record<string, { id: string; town: string }[]>>({});
+  const [newTownInputs, setNewTownInputs] = useState<Record<string, string>>({});
+  const [expandedMicroarea, setExpandedMicroarea] = useState<string | null>(null);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
@@ -29,7 +36,40 @@ export default function Impostazioni() {
         setZona(data.zona || "");
       }
     });
+    fetchMicroareaTowns();
   }, [user]);
+
+  const fetchMicroareaTowns = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_towns").select("*").eq("user_id", user.id).order("town");
+    if (!data) return;
+    const grouped: Record<string, { id: string; town: string }[]> = {};
+    MICROAREAS.forEach(m => grouped[m] = []);
+    data.forEach(row => {
+      if (!grouped[row.microarea]) grouped[row.microarea] = [];
+      grouped[row.microarea].push({ id: row.id, town: row.town });
+    });
+    setMicroareaTowns(grouped);
+  };
+
+  const addTown = async (microarea: string) => {
+    const town = (newTownInputs[microarea] || "").trim();
+    if (!town || !user) return;
+    const { error } = await supabase.from("microarea_towns").insert({ user_id: user.id, microarea, town });
+    if (error) {
+      if (error.code === "23505") toast.error("Paese già presente");
+      else toast.error("Errore");
+      return;
+    }
+    setNewTownInputs(prev => ({ ...prev, [microarea]: "" }));
+    fetchMicroareaTowns();
+    toast.success(`${town} aggiunto a ${microarea}`);
+  };
+
+  const removeTown = async (id: string) => {
+    await supabase.from("microarea_towns").delete().eq("id", id);
+    fetchMicroareaTowns();
+  };
 
   const saveSettings = async () => {
     if (!user) return;
@@ -76,6 +116,64 @@ export default function Impostazioni() {
           <Button onClick={saveSettings} disabled={saving} className="w-full rounded-xl gap-2">
             <Save className="h-4 w-4" /> {saving ? "Salvataggio..." : "Salva Profilo"}
           </Button>
+        </div>
+      </div>
+
+      {/* Microaree */}
+      <div className="glass rounded-2xl p-5 shadow-soft mb-6">
+        <h2 className="font-semibold mb-4 flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-primary" /> Microaree
+        </h2>
+        <p className="text-xs text-muted-foreground mb-4">Associa i paesi a ciascuna microarea. Questi verranno utilizzati nei filtri dell'agenda e dell'anagrafica medici.</p>
+        <div className="space-y-2">
+          {MICROAREAS.map(m => {
+            const towns = microareaTowns[m] || [];
+            const isExpanded = expandedMicroarea === m;
+            return (
+              <div key={m} className="rounded-xl border bg-card overflow-hidden">
+                <button
+                  onClick={() => setExpandedMicroarea(isExpanded ? null : m)}
+                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-semibold text-sm text-primary shrink-0">{m}</span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {towns.length > 0 ? towns.map(t => t.town).join(", ") : "Nessun paese"}
+                    </span>
+                  </div>
+                  <span className="text-xs bg-secondary px-2 py-0.5 rounded-full shrink-0">{towns.length}</span>
+                </button>
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 border-t space-y-3">
+                    {towns.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {towns.map(t => (
+                          <span key={t.id} className="inline-flex items-center gap-1 bg-secondary px-2.5 py-1 rounded-full text-xs font-medium">
+                            {t.town}
+                            <button onClick={() => removeTown(t.id)} className="h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center">
+                              <X className="h-3 w-3 text-destructive" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <Input
+                        value={newTownInputs[m] || ""}
+                        onChange={e => setNewTownInputs(prev => ({ ...prev, [m]: e.target.value }))}
+                        placeholder="Aggiungi paese..."
+                        className="rounded-xl text-sm"
+                        onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTown(m); } }}
+                      />
+                      <Button size="sm" onClick={() => addTown(m)} className="rounded-xl shrink-0">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
