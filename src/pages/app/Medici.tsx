@@ -16,6 +16,7 @@ import { toast } from "sonner";
 
 const weekDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
 const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
+const microareas = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
 const emptyHours = () => Object.fromEntries(weekDays.map(d => [d, ""]));
 
 type Doctor = {
@@ -196,7 +197,13 @@ export default function Medici() {
                 </Select>
               </div>
               <div className="space-y-2"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" defaultValue={formDefaults.paese || ""} /></div>
-              <div className="space-y-2"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" defaultValue={formDefaults.microarea || ""} /></div>
+              <div className="space-y-2">
+                <Label>Microarea</Label>
+                <Select name="microarea" defaultValue={formDefaults.microarea || ""}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona microarea" /></SelectTrigger>
+                  <SelectContent>{microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" placeholder="Via Roma 12, Milano" defaultValue={formDefaults.address || ""} /></div>
               <div className="space-y-2"><Label>Telefono</Label><Input name="phone" className="rounded-xl" placeholder="+39 ..." defaultValue={formDefaults.phone || ""} /></div>
               {formDefaults.office_hours && Object.values(formDefaults.office_hours).some(v => v) && (
@@ -294,7 +301,13 @@ export default function Medici() {
                     </Select>
                   </div>
                   <div className="space-y-1"><Label className="text-xs">Paese</Label><Input value={editData.paese || ""} onChange={e => setEditData(p => ({ ...p, paese: e.target.value }))} className="rounded-xl" /></div>
-                  <div className="space-y-1"><Label className="text-xs">Microarea</Label><Input value={editData.microarea || ""} onChange={e => setEditData(p => ({ ...p, microarea: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Microarea</Label>
+                    <Select value={editData.microarea || ""} onValueChange={v => setEditData(p => ({ ...p, microarea: v }))}>
+                      <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                      <SelectContent>{microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-1"><Label className="text-xs">Indirizzo</Label><Input value={editData.address || ""} onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} className="rounded-xl" /></div>
                   <div className="space-y-1"><Label className="text-xs">Telefono</Label><Input value={editData.phone || ""} onChange={e => setEditData(p => ({ ...p, phone: e.target.value }))} className="rounded-xl" /></div>
                 </div>

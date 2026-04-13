@@ -305,7 +305,13 @@ export default function Agenda() {
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Paese</Label><Input name="paese" className="rounded-xl" placeholder="Milano" defaultValue={selectedPaese} /></div>
-              <div className="space-y-1.5"><Label>Microarea</Label><Input name="microarea" className="rounded-xl" placeholder="Milano Nord" /></div>
+              <div className="space-y-1.5">
+                <Label>Microarea</Label>
+                <Select name="microarea" defaultValue="">
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="Seleziona microarea" /></SelectTrigger>
+                  <SelectContent>{["LE07","LE08","LE09","LE10","LE11","LE12","LE13"].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5">
                 <Label>Provenienza</Label>
                 <Select name="source" defaultValue="Ambulatorio">
