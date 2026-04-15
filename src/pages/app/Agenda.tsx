@@ -440,7 +440,10 @@ export default function Agenda() {
                 {a.type === "medico" ? <User className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-success" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>{a.name}</p>
+                <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>
+                  {a.name}
+                  {(() => { const doc = doctors.find(d => d.name === a.name); return doc?.birth_year ? <span className="text-[10px] text-muted-foreground ml-1">({doc.birth_year})</span> : null; })()}
+                </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
                   <span className="text-[10px] text-muted-foreground">{a.paese}</span>
