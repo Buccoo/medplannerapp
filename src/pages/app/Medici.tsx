@@ -3,7 +3,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, MapPin, Clock, Calendar, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, Phone, MapPin, Clock, Calendar, CalendarDays, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -383,6 +383,12 @@ export default function Medici() {
                     <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><Calendar className="h-4 w-4 text-muted-foreground" /></div>
                     <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
                   </div>
+                  {selected.birth_year && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><CalendarDays className="h-4 w-4 text-muted-foreground" /></div>
+                      <span className="text-sm"><span className="text-muted-foreground">Anno di nascita:</span> {selected.birth_year}</span>
+                    </div>
+                  )}
                 </>
               )}
 
