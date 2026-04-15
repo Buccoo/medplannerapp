@@ -3,7 +3,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, MapPin, Clock, Calendar, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, Phone, MapPin, Clock, Calendar, CalendarDays, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ type Doctor = {
   k_client: boolean;
   c_client: boolean;
   target_class: string;
+  birth_year?: number | null;
   last_visit_date?: string | null;
   last_visit_notes?: string | null;
   current_visit_notes?: string | null;
@@ -69,6 +70,7 @@ export default function Medici() {
       address: d.address || "",
       phone: d.phone || "",
       target_class: d.target_class || "",
+      birth_year: d.birth_year || null,
       office_hours: (d.office_hours as Record<string, string>) || emptyHours(),
     })));
     setLoading(false);
@@ -135,6 +137,7 @@ export default function Medici() {
     e.preventDefault();
     if (!user) return;
     const fd = new FormData(e.currentTarget);
+    const birthYearVal = fd.get("birth_year") as string;
     const { error } = await supabase.from("doctors").insert({
       user_id: user.id,
       name: fd.get("name") as string,
@@ -143,6 +146,7 @@ export default function Medici() {
       microarea: fd.get("microarea") as string,
       address: fd.get("address") as string,
       phone: fd.get("phone") as string,
+      birth_year: birthYearVal ? parseInt(birthYearVal) : null,
       office_hours: formDefaults.office_hours || emptyHours(),
     });
     if (error) { toast.error("Errore nel salvataggio"); return; }
@@ -164,6 +168,7 @@ export default function Medici() {
       k_client: updated.k_client,
       c_client: updated.c_client,
       target_class: updated.target_class,
+      birth_year: updated.birth_year,
       office_hours: updated.office_hours,
       last_visit_date: updated.last_visit_date,
       last_visit_notes: updated.last_visit_notes,
@@ -176,7 +181,7 @@ export default function Medici() {
 
   const startEdit = () => {
     if (!selected) return;
-    setEditData({ name: selected.name, specialty: selected.specialty, paese: selected.paese, microarea: selected.microarea, address: selected.address, phone: selected.phone });
+    setEditData({ name: selected.name, specialty: selected.specialty, paese: selected.paese, microarea: selected.microarea, address: selected.address, phone: selected.phone, birth_year: selected.birth_year });
     setEditing(true);
   };
 
@@ -232,6 +237,7 @@ export default function Medici() {
               </div>
               <div className="space-y-2"><Label>Indirizzo</Label><Input name="address" className="rounded-xl" placeholder="Via Roma 12, Milano" defaultValue={formDefaults.address || ""} /></div>
               <div className="space-y-2"><Label>Telefono</Label><Input name="phone" className="rounded-xl" placeholder="+39 ..." defaultValue={formDefaults.phone || ""} /></div>
+              <div className="space-y-2"><Label>Anno di nascita</Label><Input name="birth_year" type="number" className="rounded-xl" placeholder="es. 1965" /></div>
               {formDefaults.office_hours && Object.values(formDefaults.office_hours).some(v => v) && (
                 <div className="bg-secondary/50 rounded-xl p-3 space-y-1">
                   <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Orari (compilati da AI)</Label>
@@ -352,6 +358,7 @@ export default function Medici() {
                   </div>
                   <div className="space-y-1"><Label className="text-xs">Indirizzo</Label><Input value={editData.address || ""} onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} className="rounded-xl" /></div>
                   <div className="space-y-1"><Label className="text-xs">Telefono</Label><Input value={editData.phone || ""} onChange={e => setEditData(p => ({ ...p, phone: e.target.value }))} className="rounded-xl" /></div>
+                  <div className="space-y-1"><Label className="text-xs">Anno di nascita</Label><Input type="number" value={editData.birth_year ?? ""} onChange={e => setEditData(p => ({ ...p, birth_year: e.target.value ? parseInt(e.target.value) : null }))} className="rounded-xl" placeholder="es. 1965" /></div>
                 </div>
               ) : (
                 <>
@@ -376,6 +383,12 @@ export default function Medici() {
                     <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><Calendar className="h-4 w-4 text-muted-foreground" /></div>
                     <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {selected.visits}</span>
                   </div>
+                  {selected.birth_year && (
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><CalendarDays className="h-4 w-4 text-muted-foreground" /></div>
+                      <span className="text-sm"><span className="text-muted-foreground">Anno di nascita:</span> {selected.birth_year}</span>
+                    </div>
+                  )}
                 </>
               )}
 

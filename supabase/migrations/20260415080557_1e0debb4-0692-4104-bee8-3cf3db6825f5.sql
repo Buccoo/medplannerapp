@@ -1,0 +1,1 @@
+ALTER TABLE public.doctors ADD COLUMN birth_year integer NULL;

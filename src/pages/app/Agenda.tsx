@@ -77,7 +77,7 @@ export default function Agenda() {
   const [addOpen, setAddOpen] = useState(false);
   const [detailApp, setDetailApp] = useState<Appointment | null>(null);
   const [editingTime, setEditingTime] = useState(false);
-  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null }[]>([]);
+  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null; birth_year?: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
@@ -149,8 +149,8 @@ export default function Agenda() {
 
   const fetchDoctors = async () => {
     if (!user) return;
-    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours").order("name");
-    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
+    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours, birth_year").order("name");
+    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null, birth_year: d.birth_year })));
   };
 
   useEffect(() => { fetchAppointments(); fetchDoctors(); fetchMicroareaTowns(); }, [user]);
@@ -440,7 +440,10 @@ export default function Agenda() {
                 {a.type === "medico" ? <User className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-success" />}
               </div>
               <div className="flex-1 min-w-0">
-                <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>{a.name}</p>
+                <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>
+                  {a.name}
+                  {(() => { const doc = doctors.find(d => d.name === a.name); return doc?.birth_year ? <span className="text-[10px] text-muted-foreground ml-1">({doc.birth_year})</span> : null; })()}
+                </p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
                   <span className="text-[10px] text-muted-foreground">{a.paese}</span>
