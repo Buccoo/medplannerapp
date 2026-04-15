@@ -77,7 +77,7 @@ export default function Agenda() {
   const [addOpen, setAddOpen] = useState(false);
   const [detailApp, setDetailApp] = useState<Appointment | null>(null);
   const [editingTime, setEditingTime] = useState(false);
-  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null }[]>([]);
+  const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null; birth_year?: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
@@ -149,8 +149,8 @@ export default function Agenda() {
 
   const fetchDoctors = async () => {
     if (!user) return;
-    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours").order("name");
-    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null })));
+    const { data } = await supabase.from("doctors").select("name, phone, address, paese, microarea, office_hours, birth_year").order("name");
+    setDoctors((data || []).map(d => ({ name: d.name, phone: d.phone || "", address: d.address || "", paese: d.paese || "", microarea: d.microarea || "", office_hours: d.office_hours as Record<string, string> | null, birth_year: d.birth_year })));
   };
 
   useEffect(() => { fetchAppointments(); fetchDoctors(); fetchMicroareaTowns(); }, [user]);
