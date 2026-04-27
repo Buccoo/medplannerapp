@@ -727,6 +727,7 @@ export default function Prodotti() {
                               <>
                                 <th key={`o-${ci}`} className="font-normal px-1 border-l border-border">Obiettivo</th>
                                 <th key={`v-${ci}`} className="font-normal px-1">Venduti</th>
+                                <th key={`m-${ci}`} className="font-normal px-1">Mancano</th>
                               </>
                             ))}
                           </tr>
@@ -742,6 +743,7 @@ export default function Prodotti() {
                                   const ven = [0, 1, 2].reduce((s, mi) => s + getMaCell(maSelectedProduct, ma, ci, mi).sold, 0);
                                   totObj += obj; totVen += ven;
                                   const pct = obj > 0 ? Math.round((ven / obj) * 100) : 0;
+                                  const missing = Math.max(0, obj - ven);
                                   return (
                                     <>
                                       <td key={`o-${ci}`} className="px-1 border-l border-border">
@@ -754,12 +756,40 @@ export default function Prodotti() {
                                           {ven}{obj > 0 && <span className="text-[9px] font-normal opacity-70"> / {pct}%</span>}
                                         </div>
                                       </td>
+                                      <td key={`m-${ci}`} className="px-1">
+                                        <div className={`text-center text-xs font-semibold rounded-md py-1.5 ${obj === 0 ? "bg-secondary text-muted-foreground" : missing === 0 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
+                                          {obj === 0 ? "—" : missing}
+                                        </div>
+                                      </td>
                                     </>
                                   );
                                 })}
                               </tr>
                             );
                           })}
+                          {/* Riga totale */}
+                          {(() => {
+                            const totals = cycleLabels.map((_, ci) => {
+                              let o = 0, v = 0;
+                              microareas.forEach(ma => {
+                                o += getCompanyTarget(maSelectedProduct, ma, ci);
+                                v += [0, 1, 2].reduce((s, mi) => s + getMaCell(maSelectedProduct, ma, ci, mi).sold, 0);
+                              });
+                              return { o, v, m: Math.max(0, o - v) };
+                            });
+                            return (
+                              <tr className="font-semibold">
+                                <td className="px-2 py-1 sticky left-0 bg-background text-primary">TOTALE</td>
+                                {totals.map((t, ci) => (
+                                  <>
+                                    <td key={`to-${ci}`} className="px-1 border-l border-border text-center text-xs py-2">{t.o}</td>
+                                    <td key={`tv-${ci}`} className="px-1 text-center text-xs py-2 text-success">{t.v}</td>
+                                    <td key={`tm-${ci}`} className="px-1 text-center text-xs py-2 text-warning">{t.o === 0 ? "—" : t.m}</td>
+                                  </>
+                                ))}
+                              </tr>
+                            );
+                          })()}
                         </tbody>
                       </table>
                       <p className="text-[10px] text-muted-foreground text-center mt-3">
