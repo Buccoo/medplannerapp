@@ -759,7 +759,7 @@ export default function Prodotti() {
                     <div className="overflow-x-auto -mx-4 px-4">
                       {maSelectedProductIds.length > 1 && (
                         <p className="text-[11px] text-muted-foreground mb-2">
-                          Visualizzazione aggregata di <b>{maSelectedProductIds.length}</b> prodotti. Gli obiettivi non sono modificabili in modalità somma — seleziona un solo prodotto per modificarli.
+                          Visualizzazione aggregata di <b>{maSelectedProductIds.length}</b> prodotti. Le modifiche vengono applicate al primo prodotto selezionato (in ordine alfabetico).
                         </p>
                       )}
                       <table className="w-full text-xs border-separate border-spacing-y-1">
@@ -804,15 +804,17 @@ export default function Prodotti() {
                                   return (
                                     <>
                                       <td key={`o-${ci}`} className="px-1 border-l border-border">
-                                        {singleId ? (
-                                          <Input type="number" min={0} value={obj}
-                                            onChange={(e) => upsertCompanyTarget(singleId, ma, ci, Number(e.target.value) || 0)}
-                                            className="rounded-md h-8 text-xs text-center px-1 w-16" />
-                                        ) : (
-                                          <div className="text-center text-xs font-semibold rounded-md py-1.5 bg-secondary/60">
-                                            {obj}
-                                          </div>
-                                        )}
+                                        <Input
+                                          type="number" min={0} value={obj}
+                                          onChange={(e) => {
+                                            const newTotal = Number(e.target.value) || 0;
+                                            const delta = newTotal - obj;
+                                            const targetPid = singleId ?? maSelectedProductIds[0];
+                                            const current = getCompanyTarget(targetPid, ma, ci);
+                                            upsertCompanyTarget(targetPid, ma, ci, Math.max(0, current + delta));
+                                          }}
+                                          className={`rounded-md h-8 text-xs text-center px-1 w-16 ${!singleId ? "border-primary/40" : ""}`}
+                                        />
                                       </td>
                                       <td key={`v-${ci}`} className="px-1">
                                         <div className={`text-center text-xs font-semibold rounded-md py-1.5 ${obj > 0 && pct >= 100 ? "bg-success/10 text-success" : obj > 0 ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
