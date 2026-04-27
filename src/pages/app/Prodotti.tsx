@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 type CycleTargets = { month1: number; month2: number; month3: number };
@@ -63,6 +65,8 @@ export default function Prodotti() {
   const [maTargets, setMaTargets] = useState<MicroareaTarget[]>([]);
   const [maCompanyTargets, setMaCompanyTargets] = useState<MicroareaCompanyTarget[]>([]);
   const [maSelectedProduct, setMaSelectedProduct] = useState<string>("");
+  // Multi-selezione prodotti per la vista "Tabella completa" (es. Broncalt = somma di più prodotti)
+  const [maSelectedProductIds, setMaSelectedProductIds] = useState<string[]>([]);
   const [maSelectedMicroarea, setMaSelectedMicroarea] = useState<string>("");
   const [maEditingCycle, setMaEditingCycle] = useState<number>(getCurrentCycleIndex());
 
