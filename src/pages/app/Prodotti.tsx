@@ -704,19 +704,64 @@ export default function Prodotti() {
               <TabsContent value="tabella" className="space-y-3 mt-0">
                 <div className="glass rounded-2xl shadow-soft p-4 space-y-3">
                   <div>
-                    <Label className="text-xs mb-1 block">Prodotto</Label>
-                    <Select value={maSelectedProduct} onValueChange={setMaSelectedProduct}>
-                      <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona prodotto" /></SelectTrigger>
-                      <SelectContent>
-                        {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Label className="text-xs mb-1 block">Prodotti (puoi selezionarne più di uno per sommarli)</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between rounded-xl h-9 text-sm font-normal">
+                          <span className="truncate text-left">
+                            {maSelectedProductIds.length === 0
+                              ? "Seleziona prodotti"
+                              : maSelectedProductIds.length === 1
+                                ? products.find(p => p.id === maSelectedProductIds[0])?.name
+                                : `${maSelectedProductIds.length} prodotti selezionati`}
+                          </span>
+                          <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-2 rounded-xl" align="start">
+                        <div className="flex items-center justify-between px-1 py-1 mb-1">
+                          <button
+                            type="button"
+                            onClick={() => setMaSelectedProductIds(products.map(p => p.id))}
+                            className="text-[11px] text-primary hover:underline"
+                          >Seleziona tutti</button>
+                          <button
+                            type="button"
+                            onClick={() => setMaSelectedProductIds([])}
+                            className="text-[11px] text-muted-foreground hover:underline"
+                          >Deseleziona</button>
+                        </div>
+                        <div className="max-h-60 overflow-y-auto space-y-1">
+                          {products.map(p => {
+                            const checked = maSelectedProductIds.includes(p.id);
+                            return (
+                              <label key={p.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-secondary cursor-pointer text-sm">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    setMaSelectedProductIds(prev =>
+                                      v ? [...prev, p.id] : prev.filter(id => id !== p.id)
+                                    );
+                                  }}
+                                />
+                                <span className="flex-1">{p.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
-                  {!maSelectedProduct ? (
-                    <p className="text-xs text-muted-foreground text-center py-6">Seleziona un prodotto per vedere la tabella</p>
+                  {maSelectedProductIds.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">Seleziona uno o più prodotti per vedere la tabella</p>
                   ) : (
                     <div className="overflow-x-auto -mx-4 px-4">
+                      {maSelectedProductIds.length > 1 && (
+                        <p className="text-[11px] text-muted-foreground mb-2">
+                          Visualizzazione aggregata di <b>{maSelectedProductIds.length}</b> prodotti. Gli obiettivi non sono modificabili in modalità somma — seleziona un solo prodotto per modificarli.
+                        </p>
+                      )}
                       <table className="w-full text-xs border-separate border-spacing-y-1">
                         <thead>
                           <tr className="text-muted-foreground">
@@ -741,21 +786,33 @@ export default function Prodotti() {
                         <tbody>
                           {microareas.map(ma => {
                             let totObj = 0, totVen = 0;
+                            const singleId = maSelectedProductIds.length === 1 ? maSelectedProductIds[0] : null;
                             return (
                               <tr key={ma}>
                                 <td className="font-medium px-2 py-1 sticky left-0 bg-background whitespace-nowrap">{ma}</td>
                                 {cycleLabels.map((_, ci) => {
-                                  const obj = getCompanyTarget(maSelectedProduct, ma, ci);
-                                  const ven = [0, 1, 2].reduce((s, mi) => s + getMaCell(maSelectedProduct, ma, ci, mi).sold, 0);
+                                  const obj = maSelectedProductIds.reduce(
+                                    (s, pid) => s + getCompanyTarget(pid, ma, ci), 0
+                                  );
+                                  const ven = maSelectedProductIds.reduce(
+                                    (s, pid) => s + [0, 1, 2].reduce((ss, mi) => ss + getMaCell(pid, ma, ci, mi).sold, 0),
+                                    0
+                                  );
                                   totObj += obj; totVen += ven;
                                   const pct = obj > 0 ? Math.round((ven / obj) * 100) : 0;
                                   const missing = Math.max(0, obj - ven);
                                   return (
                                     <>
                                       <td key={`o-${ci}`} className="px-1 border-l border-border">
-                                        <Input type="number" min={0} value={obj}
-                                          onChange={(e) => upsertCompanyTarget(maSelectedProduct, ma, ci, Number(e.target.value) || 0)}
-                                          className="rounded-md h-8 text-xs text-center px-1 w-16" />
+                                        {singleId ? (
+                                          <Input type="number" min={0} value={obj}
+                                            onChange={(e) => upsertCompanyTarget(singleId, ma, ci, Number(e.target.value) || 0)}
+                                            className="rounded-md h-8 text-xs text-center px-1 w-16" />
+                                        ) : (
+                                          <div className="text-center text-xs font-semibold rounded-md py-1.5 bg-secondary/60">
+                                            {obj}
+                                          </div>
+                                        )}
                                       </td>
                                       <td key={`v-${ci}`} className="px-1">
                                         <div className={`text-center text-xs font-semibold rounded-md py-1.5 ${obj > 0 && pct >= 100 ? "bg-success/10 text-success" : obj > 0 ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
@@ -778,8 +835,10 @@ export default function Prodotti() {
                             const totals = cycleLabels.map((_, ci) => {
                               let o = 0, v = 0;
                               microareas.forEach(ma => {
-                                o += getCompanyTarget(maSelectedProduct, ma, ci);
-                                v += [0, 1, 2].reduce((s, mi) => s + getMaCell(maSelectedProduct, ma, ci, mi).sold, 0);
+                                maSelectedProductIds.forEach(pid => {
+                                  o += getCompanyTarget(pid, ma, ci);
+                                  v += [0, 1, 2].reduce((s, mi) => s + getMaCell(pid, ma, ci, mi).sold, 0);
+                                });
                               });
                               return { o, v, m: Math.max(0, o - v) };
                             });
@@ -799,7 +858,7 @@ export default function Prodotti() {
                         </tbody>
                       </table>
                       <p className="text-[10px] text-muted-foreground text-center mt-3">
-                        I venduti vengono dalla somma dei mesi inseriti in "Inserimento rapido". Tocca un valore "Obiettivo" per modificarlo.
+                        I venduti vengono dalla somma dei mesi inseriti in "Inserimento rapido". Seleziona un solo prodotto per modificare gli obiettivi.
                       </p>
                     </div>
                   )}
