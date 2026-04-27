@@ -596,159 +596,180 @@ export default function Prodotti() {
               Aggiungi prima delle microaree in Impostazioni
             </div>
           ) : (
-            <>
-              <div className="glass rounded-2xl shadow-soft p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+            <Tabs defaultValue="rapido" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 rounded-xl mb-3">
+                <TabsTrigger value="rapido" className="rounded-lg text-xs">Inserimento rapido</TabsTrigger>
+                <TabsTrigger value="tabella" className="rounded-lg text-xs">Tabella completa</TabsTrigger>
+              </TabsList>
+
+              {/* ===== INSERIMENTO RAPIDO ===== */}
+              <TabsContent value="rapido" className="space-y-3 mt-0">
+                <div className="glass rounded-2xl shadow-soft p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs mb-1 block">Prodotto</Label>
+                      <Select value={maSelectedProduct} onValueChange={setMaSelectedProduct}>
+                        <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                        <SelectContent>
+                          {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1 block flex items-center gap-1"><MapPin className="h-3 w-3" /> Microarea</Label>
+                      <Select value={maSelectedMicroarea} onValueChange={setMaSelectedMicroarea}>
+                        <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                        <SelectContent>
+                          {microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {maSelectedProduct && maSelectedMicroarea ? (
+                    <>
+                      <div className="flex gap-1">
+                        {cycleLabels.map((_, ci) => (
+                          <button key={ci} onClick={() => setMaEditingCycle(ci)}
+                            className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${maEditingCycle === ci ? "bg-primary text-primary-foreground font-medium" : "bg-secondary text-muted-foreground"}`}>
+                            Ciclo {ci + 1}
+                          </button>
+                        ))}
+                      </div>
+
+                      {(() => {
+                        const companyT = getCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle);
+                        const sold = cycleMaTotals.sold;
+                        const remaining = Math.max(0, companyT - sold);
+                        const pct = companyT > 0 ? Math.min(100, Math.round((sold / companyT) * 100)) : 0;
+                        return (
+                          <div className="bg-primary/5 rounded-xl p-3 border border-primary/20 space-y-2">
+                            <Label className="text-xs flex items-center gap-1 font-medium">
+                              <Building className="h-3 w-3" /> Obiettivo azienda – Ciclo {maEditingCycle + 1}
+                            </Label>
+                            <Input type="number" min={0} value={companyT}
+                              onChange={(e) => upsertCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle, Number(e.target.value) || 0)}
+                              className="rounded-lg h-10 text-base font-semibold text-center"
+                              placeholder="Pz richiesti dall'azienda" />
+                            {companyT > 0 && (
+                              <>
+                                <Progress value={pct} className="h-2 rounded-full" />
+                                <div className="grid grid-cols-3 gap-2 text-[11px] pt-1">
+                                  <div className="text-center"><p className="text-muted-foreground">Obiettivo</p><p className="font-semibold">{companyT}</p></div>
+                                  <div className="text-center"><p className="text-muted-foreground">Venduti</p><p className="font-semibold text-success">{sold}</p></div>
+                                  <div className="text-center"><p className="text-muted-foreground">Mancano</p><p className="font-semibold text-primary">{remaining}</p></div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Solo venduti per mese */}
+                      <div className="bg-secondary/50 rounded-xl p-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Pezzi venduti nel mese</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {cycleLabels[maEditingCycle].map((monthName, mi) => {
+                            const cell = getMaCell(maSelectedProduct, maSelectedMicroarea, maEditingCycle, mi);
+                            return (
+                              <div key={monthName} className="text-center">
+                                <p className="text-[11px] text-muted-foreground mb-1 font-medium">{monthName}</p>
+                                <Input type="number" min={0} value={cell.sold}
+                                  onChange={(e) => upsertMaCell(maSelectedProduct, maSelectedMicroarea, maEditingCycle, mi, "sold", Number(e.target.value) || 0)}
+                                  className="rounded-lg text-center h-9 text-sm" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground text-center mt-2">
+                          Totale ciclo: <b>{cycleMaTotals.sold}</b> pz
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">
+                      Seleziona prodotto e microarea
+                    </p>
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* ===== TABELLA COMPLETA ===== */}
+              <TabsContent value="tabella" className="space-y-3 mt-0">
+                <div className="glass rounded-2xl shadow-soft p-4 space-y-3">
                   <div>
                     <Label className="text-xs mb-1 block">Prodotto</Label>
                     <Select value={maSelectedProduct} onValueChange={setMaSelectedProduct}>
-                      <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona" /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona prodotto" /></SelectTrigger>
                       <SelectContent>
                         {products.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label className="text-xs mb-1 block flex items-center gap-1"><MapPin className="h-3 w-3" /> Microarea</Label>
-                    <Select value={maSelectedMicroarea} onValueChange={setMaSelectedMicroarea}>
-                      <SelectTrigger className="rounded-xl h-9 text-sm"><SelectValue placeholder="Seleziona" /></SelectTrigger>
-                      <SelectContent>
-                        {microareas.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+
+                  {!maSelectedProduct ? (
+                    <p className="text-xs text-muted-foreground text-center py-6">Seleziona un prodotto per vedere la tabella</p>
+                  ) : (
+                    <div className="overflow-x-auto -mx-4 px-4">
+                      <table className="w-full text-xs border-separate border-spacing-y-1">
+                        <thead>
+                          <tr className="text-muted-foreground">
+                            <th className="text-left font-medium px-2 py-1 sticky left-0 bg-background">Microarea</th>
+                            {cycleLabels.map((_, ci) => (
+                              <th key={ci} colSpan={2} className="text-center font-medium px-2 py-1 border-l border-border">
+                                Ciclo {ci + 1}
+                              </th>
+                            ))}
+                          </tr>
+                          <tr className="text-[10px] text-muted-foreground">
+                            <th className="sticky left-0 bg-background"></th>
+                            {cycleLabels.map((_, ci) => (
+                              <>
+                                <th key={`o-${ci}`} className="font-normal px-1 border-l border-border">Obiettivo</th>
+                                <th key={`v-${ci}`} className="font-normal px-1">Venduti</th>
+                              </>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {microareas.map(ma => {
+                            let totObj = 0, totVen = 0;
+                            return (
+                              <tr key={ma}>
+                                <td className="font-medium px-2 py-1 sticky left-0 bg-background whitespace-nowrap">{ma}</td>
+                                {cycleLabels.map((_, ci) => {
+                                  const obj = getCompanyTarget(maSelectedProduct, ma, ci);
+                                  const ven = [0, 1, 2].reduce((s, mi) => s + getMaCell(maSelectedProduct, ma, ci, mi).sold, 0);
+                                  totObj += obj; totVen += ven;
+                                  const pct = obj > 0 ? Math.round((ven / obj) * 100) : 0;
+                                  return (
+                                    <>
+                                      <td key={`o-${ci}`} className="px-1 border-l border-border">
+                                        <Input type="number" min={0} value={obj}
+                                          onChange={(e) => upsertCompanyTarget(maSelectedProduct, ma, ci, Number(e.target.value) || 0)}
+                                          className="rounded-md h-8 text-xs text-center px-1 w-16" />
+                                      </td>
+                                      <td key={`v-${ci}`} className="px-1">
+                                        <div className={`text-center text-xs font-semibold rounded-md py-1.5 ${obj > 0 && pct >= 100 ? "bg-success/10 text-success" : obj > 0 ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                                          {ven}{obj > 0 && <span className="text-[9px] font-normal opacity-70"> / {pct}%</span>}
+                                        </div>
+                                      </td>
+                                    </>
+                                  );
+                                })}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <p className="text-[10px] text-muted-foreground text-center mt-3">
+                        I venduti vengono dalla somma dei mesi inseriti in "Inserimento rapido". Tocca un valore "Obiettivo" per modificarlo.
+                      </p>
+                    </div>
+                  )}
                 </div>
-
-                {maSelectedProduct && maSelectedMicroarea && (
-                  <>
-                    <div className="flex gap-1">
-                      {cycleLabels.map((_, ci) => (
-                        <button key={ci} onClick={() => setMaEditingCycle(ci)}
-                          className={`flex-1 text-xs py-1.5 rounded-lg transition-all ${maEditingCycle === ci ? "bg-primary text-primary-foreground font-medium" : "bg-secondary text-muted-foreground"}`}>
-                          Ciclo {ci + 1}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Riepilogo ciclo */}
-                    {(() => {
-                      const pct = cycleMaTotals.target > 0 ? Math.min(100, Math.round((cycleMaTotals.sold / cycleMaTotals.target) * 100)) : 0;
-                      const remaining = Math.max(0, cycleMaTotals.target - cycleMaTotals.sold);
-                      return (
-                        <div className="bg-accent/40 rounded-xl p-3 border border-accent">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium">Riepilogo Ciclo {maEditingCycle + 1}</span>
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pct >= 100 ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{pct}%</span>
-                          </div>
-                          <Progress value={pct} className="h-2 rounded-full mb-2" />
-                          <div className="grid grid-cols-3 gap-2 text-[11px]">
-                            <div className="text-center">
-                              <p className="text-muted-foreground">Target</p>
-                              <p className="font-semibold">{cycleMaTotals.target}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-muted-foreground">Venduti</p>
-                              <p className="font-semibold text-success">{cycleMaTotals.sold}</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="text-muted-foreground">Mancano</p>
-                              <p className="font-semibold text-primary">{remaining}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Obiettivo aziendale per microarea+ciclo */}
-                    {(() => {
-                      const companyT = getCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle);
-                      const sold = cycleMaTotals.sold;
-                      const remainingCo = Math.max(0, companyT - sold);
-                      const pctCo = companyT > 0 ? Math.min(100, Math.round((sold / companyT) * 100)) : 0;
-                      return (
-                        <div className="bg-primary/5 rounded-xl p-3 border border-primary/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <Label className="text-xs flex items-center gap-1 font-medium">
-                              <Building className="h-3 w-3" /> Obiettivo aziendale Ciclo {maEditingCycle + 1}
-                            </Label>
-                            {companyT > 0 && (
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pctCo >= 100 ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{pctCo}%</span>
-                            )}
-                          </div>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={companyT}
-                            onChange={(e) => upsertCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle, Number(e.target.value) || 0)}
-                            className="rounded-lg h-9 text-sm font-semibold mb-2"
-                            placeholder="Pz richiesti dall'azienda"
-                          />
-                          {companyT > 0 && (
-                            <>
-                              <Progress value={pctCo} className="h-2 rounded-full mb-2" />
-                              <div className="grid grid-cols-3 gap-2 text-[11px]">
-                                <div className="text-center">
-                                  <p className="text-muted-foreground">Obiettivo</p>
-                                  <p className="font-semibold">{companyT}</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-muted-foreground">Venduti</p>
-                                  <p className="font-semibold text-success">{sold}</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-muted-foreground">Mancano</p>
-                                  <p className="font-semibold text-primary">{remainingCo}</p>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-
-                    {/* Tabella mensile */}
-                    <div className="bg-secondary/50 rounded-xl p-3">
-                      <div className="grid grid-cols-[1fr,1fr,1fr] gap-2 mb-2 text-[10px] text-muted-foreground font-medium px-1">
-                        <span>Mese</span>
-                        <span className="text-center">Target</span>
-                        <span className="text-center">Venduti</span>
-                      </div>
-                      <div className="space-y-2">
-                        {cycleLabels[maEditingCycle].map((monthName, mi) => {
-                          const cell = getMaCell(maSelectedProduct, maSelectedMicroarea, maEditingCycle, mi);
-                          const pct = cell.target > 0 ? Math.min(100, Math.round((cell.sold / cell.target) * 100)) : 0;
-                          return (
-                            <div key={monthName} className="bg-background/50 rounded-lg p-2">
-                              <div className="grid grid-cols-[1fr,1fr,1fr] gap-2 items-center">
-                                <span className="text-xs font-medium">{monthName}</span>
-                                <Input type="number" min={0} value={cell.target}
-                                  onChange={(e) => upsertMaCell(maSelectedProduct, maSelectedMicroarea, maEditingCycle, mi, "target", Number(e.target.value) || 0)}
-                                  className="rounded-lg text-center h-8 text-sm" />
-                                <Input type="number" min={0} value={cell.sold}
-                                  onChange={(e) => upsertMaCell(maSelectedProduct, maSelectedMicroarea, maEditingCycle, mi, "sold", Number(e.target.value) || 0)}
-                                  className="rounded-lg text-center h-8 text-sm" />
-                              </div>
-                              {cell.target > 0 && (
-                                <div className="mt-1.5">
-                                  <Progress value={pct} className="h-1 rounded-full" />
-                                  <p className="text-[10px] text-muted-foreground text-right mt-0.5">{pct}%</p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {(!maSelectedProduct || !maSelectedMicroarea) && (
-                  <p className="text-xs text-muted-foreground text-center py-4">
-                    Seleziona prodotto e microarea per gestire gli obiettivi
-                  </p>
-                )}
-              </div>
-            </>
+              </TabsContent>
+            </Tabs>
           )}
         </TabsContent>
       </Tabs>
