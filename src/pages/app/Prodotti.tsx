@@ -3,7 +3,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2, Target, MapPin, RotateCcw, Upload, Sparkles, Check, X } from "lucide-react";
+import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2, Target, MapPin, RotateCcw, Check, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import Archivio from "@/components/Archivio";
 
 type CycleTargets = { month1: number; month2: number; month3: number };
 
@@ -69,105 +70,6 @@ export default function Prodotti() {
   const [maSelectedProductIds, setMaSelectedProductIds] = useState<string[]>([]);
   const [maSelectedMicroarea, setMaSelectedMicroarea] = useState<string>("");
   const [maEditingCycle, setMaEditingCycle] = useState<number>(getCurrentCycleIndex());
-
-  // ===== AI Screenshot import state =====
-  const [importing, setImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<any[] | null>(null);
-  const [importFileName, setImportFileName] = useState<string>("");
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!canEdit) { toast.error("Abbonamento scaduto."); return; }
-    if (microareas.length === 0) { toast.error("Aggiungi prima delle microaree in Impostazioni"); return; }
-    if (products.length === 0) { toast.error("Aggiungi prima dei prodotti"); return; }
-    if (!file.type.startsWith("image/")) { toast.error("Carica un'immagine (PNG, JPG)"); return; }
-
-    setImporting(true);
-    setImportFileName(file.name);
-    try {
-      const buf = await file.arrayBuffer();
-      let binary = "";
-      const bytes = new Uint8Array(buf);
-      const chunk = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
-      }
-      const imageBase64 = btoa(binary);
-
-      const { data, error } = await supabase.functions.invoke("import-company-excel", {
-        body: {
-          imageBase64,
-          mimeType: file.type || "image/png",
-          fileName: file.name,
-          microareas,
-          products: products.map(p => ({ id: p.id, name: p.name })),
-        },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-
-      const rows = (data as any).rows || [];
-      if (rows.length === 0) {
-        toast.warning("Nessun dato trovato per le tue microaree");
-        setImportPreview(null);
-      } else {
-        setImportPreview(rows);
-        setSelectedRows(new Set(rows.map((_: any, i: number) => i)));
-        toast.success(`${rows.length} righe estratte`);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Errore importazione");
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const confirmImport = async () => {
-    if (!importPreview || !user) return;
-    const rowsToImport = importPreview.filter((_, i) => selectedRows.has(i));
-    if (rowsToImport.length === 0) { toast.error("Nessuna riga selezionata"); return; }
-
-    let okCount = 0;
-    for (const r of rowsToImport) {
-      try {
-        if (r.company_target != null) {
-          await supabase.from("microarea_company_targets").upsert({
-            user_id: user.id,
-            product_id: r.product_id,
-            microarea: r.microarea,
-            cycle_index: r.cycle_index,
-            company_target: r.company_target,
-          }, { onConflict: "user_id,product_id,microarea,cycle_index" });
-        }
-        if (Array.isArray(r.monthly_sold)) {
-          for (let mi = 0; mi < 3; mi++) {
-            const v = r.monthly_sold[mi];
-            if (v == null) continue;
-            const existing = maTargets.find(t => t.product_id === r.product_id && t.microarea === r.microarea && t.cycle_index === r.cycle_index && t.month_index === mi);
-            await supabase.from("microarea_targets").upsert({
-              user_id: user.id,
-              product_id: r.product_id,
-              microarea: r.microarea,
-              cycle_index: r.cycle_index,
-              month_index: mi,
-              target: existing?.target ?? 0,
-              sold: v,
-            }, { onConflict: "user_id,product_id,microarea,cycle_index,month_index" });
-          }
-        }
-        okCount++;
-      } catch (e) { console.error(e); }
-    }
-    toast.success(`Importate ${okCount} righe`);
-    setImportPreview(null);
-    setSelectedRows(new Set());
-    fetchMicroareaTargets();
-    fetchMicroareaCompanyTargets();
-  };
 
   const fetchProducts = async () => {
     if (!user) return;
