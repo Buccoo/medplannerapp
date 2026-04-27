@@ -255,9 +255,10 @@ export default function Prodotti() {
       </div>
 
       <Tabs defaultValue="prodotti" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 rounded-xl mb-4">
+        <TabsList className="grid w-full grid-cols-3 rounded-xl mb-4">
           <TabsTrigger value="prodotti" className="rounded-lg">Prodotti</TabsTrigger>
           <TabsTrigger value="microaree" className="rounded-lg">Obiettivi Microaree</TabsTrigger>
+          <TabsTrigger value="archivio" className="rounded-lg">Archivio</TabsTrigger>
         </TabsList>
 
         {/* ============== TAB PRODOTTI ============== */}
@@ -393,110 +394,6 @@ export default function Prodotti() {
 
         {/* ============== TAB MICROAREE ============== */}
         <TabsContent value="microaree" className="space-y-4 mt-0">
-          {/* AI Screenshot Import */}
-          {products.length > 0 && microareas.length > 0 && (
-            <div className="glass rounded-2xl shadow-soft p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-medium text-sm">Importa da screenshot (AI)</h3>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Carica lo screenshot della tabella di un prodotto. L'AI leggerà solo le tue microaree ({microareas.join(", ")}).
-              </p>
-              <label className="block">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={importing}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-xl gap-2"
-                  disabled={importing}
-                  asChild
-                >
-                  <span>
-                    {importing ? (
-                      <><div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" /> Analisi in corso...</>
-                    ) : (
-                      <><Upload className="h-4 w-4" /> Carica screenshot</>
-                    )}
-                  </span>
-                </Button>
-              </label>
-
-              {importPreview && importPreview.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium">Anteprima ({importPreview.length} righe da {importFileName})</p>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setSelectedRows(new Set(importPreview.map((_, i) => i)))}
-                        className="text-[10px] text-primary hover:underline"
-                      >Tutte</button>
-                      <span className="text-[10px] text-muted-foreground">|</span>
-                      <button
-                        onClick={() => setSelectedRows(new Set())}
-                        className="text-[10px] text-muted-foreground hover:underline"
-                      >Nessuna</button>
-                    </div>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-xl p-2">
-                    {importPreview.map((r, i) => {
-                      const prod = products.find(p => p.id === r.product_id);
-                      const isSel = selectedRows.has(i);
-                      return (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            const ns = new Set(selectedRows);
-                            if (isSel) ns.delete(i); else ns.add(i);
-                            setSelectedRows(ns);
-                          }}
-                          className={`text-[11px] p-2 rounded-lg cursor-pointer flex items-start gap-2 ${isSel ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-transparent"}`}
-                        >
-                          <div className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center shrink-0 ${isSel ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                            {isSel && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold">{prod?.name || r.product_name}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-primary font-medium">{r.microarea}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span>Ciclo {r.cycle_index + 1}</span>
-                            </div>
-                            <div className="text-muted-foreground mt-0.5 flex flex-wrap gap-x-3">
-                              {r.company_target != null && <span>🎯 Obiettivo: <b>{r.company_target}</b></span>}
-                              {Array.isArray(r.monthly_sold) && r.monthly_sold.some((v: any) => v != null) && (
-                                <span>📦 Venduti: {r.monthly_sold.map((v: any) => v ?? "-").join(" / ")}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => { setImportPreview(null); setSelectedRows(new Set()); }}
-                      variant="outline"
-                      className="flex-1 rounded-xl gap-1"
-                    ><X className="h-4 w-4" /> Annulla</Button>
-                    <Button
-                      onClick={confirmImport}
-                      className="flex-1 rounded-xl gap-1"
-                      disabled={selectedRows.size === 0}
-                    ><Check className="h-4 w-4" /> Importa {selectedRows.size}</Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {products.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">Aggiungi prima un prodotto</div>
           ) : microareas.length === 0 ? (
