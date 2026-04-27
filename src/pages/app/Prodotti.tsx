@@ -3,7 +3,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2, Target, MapPin, RotateCcw, Upload, Sparkles, Check, X } from "lucide-react";
+import { Plus, TrendingUp, ChevronDown, ChevronUp, Building, Trash2, Target, MapPin, RotateCcw, Check, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import Archivio from "@/components/Archivio";
 
 type CycleTargets = { month1: number; month2: number; month3: number };
 
@@ -69,105 +70,6 @@ export default function Prodotti() {
   const [maSelectedProductIds, setMaSelectedProductIds] = useState<string[]>([]);
   const [maSelectedMicroarea, setMaSelectedMicroarea] = useState<string>("");
   const [maEditingCycle, setMaEditingCycle] = useState<number>(getCurrentCycleIndex());
-
-  // ===== AI Screenshot import state =====
-  const [importing, setImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<any[] | null>(null);
-  const [importFileName, setImportFileName] = useState<string>("");
-  const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!canEdit) { toast.error("Abbonamento scaduto."); return; }
-    if (microareas.length === 0) { toast.error("Aggiungi prima delle microaree in Impostazioni"); return; }
-    if (products.length === 0) { toast.error("Aggiungi prima dei prodotti"); return; }
-    if (!file.type.startsWith("image/")) { toast.error("Carica un'immagine (PNG, JPG)"); return; }
-
-    setImporting(true);
-    setImportFileName(file.name);
-    try {
-      const buf = await file.arrayBuffer();
-      let binary = "";
-      const bytes = new Uint8Array(buf);
-      const chunk = 0x8000;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
-      }
-      const imageBase64 = btoa(binary);
-
-      const { data, error } = await supabase.functions.invoke("import-company-excel", {
-        body: {
-          imageBase64,
-          mimeType: file.type || "image/png",
-          fileName: file.name,
-          microareas,
-          products: products.map(p => ({ id: p.id, name: p.name })),
-        },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-
-      const rows = (data as any).rows || [];
-      if (rows.length === 0) {
-        toast.warning("Nessun dato trovato per le tue microaree");
-        setImportPreview(null);
-      } else {
-        setImportPreview(rows);
-        setSelectedRows(new Set(rows.map((_: any, i: number) => i)));
-        toast.success(`${rows.length} righe estratte`);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Errore importazione");
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const confirmImport = async () => {
-    if (!importPreview || !user) return;
-    const rowsToImport = importPreview.filter((_, i) => selectedRows.has(i));
-    if (rowsToImport.length === 0) { toast.error("Nessuna riga selezionata"); return; }
-
-    let okCount = 0;
-    for (const r of rowsToImport) {
-      try {
-        if (r.company_target != null) {
-          await supabase.from("microarea_company_targets").upsert({
-            user_id: user.id,
-            product_id: r.product_id,
-            microarea: r.microarea,
-            cycle_index: r.cycle_index,
-            company_target: r.company_target,
-          }, { onConflict: "user_id,product_id,microarea,cycle_index" });
-        }
-        if (Array.isArray(r.monthly_sold)) {
-          for (let mi = 0; mi < 3; mi++) {
-            const v = r.monthly_sold[mi];
-            if (v == null) continue;
-            const existing = maTargets.find(t => t.product_id === r.product_id && t.microarea === r.microarea && t.cycle_index === r.cycle_index && t.month_index === mi);
-            await supabase.from("microarea_targets").upsert({
-              user_id: user.id,
-              product_id: r.product_id,
-              microarea: r.microarea,
-              cycle_index: r.cycle_index,
-              month_index: mi,
-              target: existing?.target ?? 0,
-              sold: v,
-            }, { onConflict: "user_id,product_id,microarea,cycle_index,month_index" });
-          }
-        }
-        okCount++;
-      } catch (e) { console.error(e); }
-    }
-    toast.success(`Importate ${okCount} righe`);
-    setImportPreview(null);
-    setSelectedRows(new Set());
-    fetchMicroareaTargets();
-    fetchMicroareaCompanyTargets();
-  };
 
   const fetchProducts = async () => {
     if (!user) return;
@@ -353,9 +255,10 @@ export default function Prodotti() {
       </div>
 
       <Tabs defaultValue="prodotti" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 rounded-xl mb-4">
+        <TabsList className="grid w-full grid-cols-3 rounded-xl mb-4">
           <TabsTrigger value="prodotti" className="rounded-lg">Prodotti</TabsTrigger>
           <TabsTrigger value="microaree" className="rounded-lg">Obiettivi Microaree</TabsTrigger>
+          <TabsTrigger value="archivio" className="rounded-lg">Archivio</TabsTrigger>
         </TabsList>
 
         {/* ============== TAB PRODOTTI ============== */}
@@ -491,110 +394,6 @@ export default function Prodotti() {
 
         {/* ============== TAB MICROAREE ============== */}
         <TabsContent value="microaree" className="space-y-4 mt-0">
-          {/* AI Screenshot Import */}
-          {products.length > 0 && microareas.length > 0 && (
-            <div className="glass rounded-2xl shadow-soft p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-medium text-sm">Importa da screenshot (AI)</h3>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Carica lo screenshot della tabella di un prodotto. L'AI leggerà solo le tue microaree ({microareas.join(", ")}).
-              </p>
-              <label className="block">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  disabled={importing}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full rounded-xl gap-2"
-                  disabled={importing}
-                  asChild
-                >
-                  <span>
-                    {importing ? (
-                      <><div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" /> Analisi in corso...</>
-                    ) : (
-                      <><Upload className="h-4 w-4" /> Carica screenshot</>
-                    )}
-                  </span>
-                </Button>
-              </label>
-
-              {importPreview && importPreview.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium">Anteprima ({importPreview.length} righe da {importFileName})</p>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setSelectedRows(new Set(importPreview.map((_, i) => i)))}
-                        className="text-[10px] text-primary hover:underline"
-                      >Tutte</button>
-                      <span className="text-[10px] text-muted-foreground">|</span>
-                      <button
-                        onClick={() => setSelectedRows(new Set())}
-                        className="text-[10px] text-muted-foreground hover:underline"
-                      >Nessuna</button>
-                    </div>
-                  </div>
-                  <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-xl p-2">
-                    {importPreview.map((r, i) => {
-                      const prod = products.find(p => p.id === r.product_id);
-                      const isSel = selectedRows.has(i);
-                      return (
-                        <div
-                          key={i}
-                          onClick={() => {
-                            const ns = new Set(selectedRows);
-                            if (isSel) ns.delete(i); else ns.add(i);
-                            setSelectedRows(ns);
-                          }}
-                          className={`text-[11px] p-2 rounded-lg cursor-pointer flex items-start gap-2 ${isSel ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-transparent"}`}
-                        >
-                          <div className={`mt-0.5 h-4 w-4 rounded border flex items-center justify-center shrink-0 ${isSel ? "bg-primary border-primary" : "border-muted-foreground"}`}>
-                            {isSel && <Check className="h-3 w-3 text-primary-foreground" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold">{prod?.name || r.product_name}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span className="text-primary font-medium">{r.microarea}</span>
-                              <span className="text-muted-foreground">·</span>
-                              <span>Ciclo {r.cycle_index + 1}</span>
-                            </div>
-                            <div className="text-muted-foreground mt-0.5 flex flex-wrap gap-x-3">
-                              {r.company_target != null && <span>🎯 Obiettivo: <b>{r.company_target}</b></span>}
-                              {Array.isArray(r.monthly_sold) && r.monthly_sold.some((v: any) => v != null) && (
-                                <span>📦 Venduti: {r.monthly_sold.map((v: any) => v ?? "-").join(" / ")}</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => { setImportPreview(null); setSelectedRows(new Set()); }}
-                      variant="outline"
-                      className="flex-1 rounded-xl gap-1"
-                    ><X className="h-4 w-4" /> Annulla</Button>
-                    <Button
-                      onClick={confirmImport}
-                      className="flex-1 rounded-xl gap-1"
-                      disabled={selectedRows.size === 0}
-                    ><Check className="h-4 w-4" /> Importa {selectedRows.size}</Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {products.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground text-sm">Aggiungi prima un prodotto</div>
           ) : microareas.length === 0 ? (
@@ -868,6 +667,11 @@ export default function Prodotti() {
               </TabsContent>
             </Tabs>
           )}
+        </TabsContent>
+
+        {/* ============== TAB ARCHIVIO ============== */}
+        <TabsContent value="archivio" className="mt-0">
+          <Archivio />
         </TabsContent>
       </Tabs>
     </div>
