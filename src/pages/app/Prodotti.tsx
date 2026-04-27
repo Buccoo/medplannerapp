@@ -66,19 +66,20 @@ export default function Prodotti() {
   const [maSelectedMicroarea, setMaSelectedMicroarea] = useState<string>("");
   const [maEditingCycle, setMaEditingCycle] = useState<number>(getCurrentCycleIndex());
 
-  // ===== AI Excel import state =====
+  // ===== AI Screenshot import state =====
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState<any[] | null>(null);
   const [importFileName, setImportFileName] = useState<string>("");
   const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
 
-  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     if (!canEdit) { toast.error("Abbonamento scaduto."); return; }
     if (microareas.length === 0) { toast.error("Aggiungi prima delle microaree in Impostazioni"); return; }
     if (products.length === 0) { toast.error("Aggiungi prima dei prodotti"); return; }
+    if (!file.type.startsWith("image/")) { toast.error("Carica un'immagine (PNG, JPG)"); return; }
 
     setImporting(true);
     setImportFileName(file.name);
@@ -90,11 +91,12 @@ export default function Prodotti() {
       for (let i = 0; i < bytes.length; i += chunk) {
         binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
       }
-      const fileBase64 = btoa(binary);
+      const imageBase64 = btoa(binary);
 
       const { data, error } = await supabase.functions.invoke("import-company-excel", {
         body: {
-          fileBase64,
+          imageBase64,
+          mimeType: file.type || "image/png",
           fileName: file.name,
           microareas,
           products: products.map(p => ({ id: p.id, name: p.name })),
@@ -485,21 +487,21 @@ export default function Prodotti() {
 
         {/* ============== TAB MICROAREE ============== */}
         <TabsContent value="microaree" className="space-y-4 mt-0">
-          {/* AI Excel Import */}
+          {/* AI Screenshot Import */}
           {products.length > 0 && microareas.length > 0 && (
             <div className="glass rounded-2xl shadow-soft p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-medium text-sm">Importa da Excel aziendale (AI)</h3>
+                <h3 className="font-medium text-sm">Importa da screenshot (AI)</h3>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Carica il file Excel dell'azienda. L'AI estrarrà solo i dati delle tue microaree ({microareas.join(", ")}).
+                Carica lo screenshot della tabella di un prodotto. L'AI leggerà solo le tue microaree ({microareas.join(", ")}).
               </p>
               <label className="block">
                 <input
                   type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={handleExcelUpload}
+                  accept="image/*"
+                  onChange={handleImageUpload}
                   disabled={importing}
                   className="hidden"
                 />
@@ -514,7 +516,7 @@ export default function Prodotti() {
                     {importing ? (
                       <><div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" /> Analisi in corso...</>
                     ) : (
-                      <><Upload className="h-4 w-4" /> Carica file Excel</>
+                      <><Upload className="h-4 w-4" /> Carica screenshot</>
                     )}
                   </span>
                 </Button>
