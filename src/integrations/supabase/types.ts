@@ -152,6 +152,39 @@ export type Database = {
         }
         Relationships: []
       }
+      microarea_company_targets: {
+        Row: {
+          company_target: number
+          created_at: string
+          cycle_index: number
+          id: string
+          microarea: string
+          product_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_target?: number
+          created_at?: string
+          cycle_index: number
+          id?: string
+          microarea: string
+          product_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_target?: number
+          created_at?: string
+          cycle_index?: number
+          id?: string
+          microarea?: string
+          product_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       microarea_targets: {
         Row: {
           created_at: string
