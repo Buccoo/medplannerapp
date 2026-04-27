@@ -860,7 +860,7 @@ export default function Prodotti() {
                         </tbody>
                       </table>
                       <p className="text-[10px] text-muted-foreground text-center mt-3">
-                        I venduti vengono dalla somma dei mesi inseriti in "Inserimento rapido". Seleziona un solo prodotto per modificare gli obiettivi.
+                        I venduti vengono dalla somma dei mesi inseriti in "Inserimento rapido". In modalità aggregata, le modifiche all'obiettivo vengono applicate al primo prodotto selezionato.
                       </p>
                     </div>
                   )}
