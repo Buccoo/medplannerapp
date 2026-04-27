@@ -668,6 +668,11 @@ export default function Prodotti() {
             </Tabs>
           )}
         </TabsContent>
+
+        {/* ============== TAB ARCHIVIO ============== */}
+        <TabsContent value="archivio" className="mt-0">
+          <Archivio />
+        </TabsContent>
       </Tabs>
     </div>
   );
