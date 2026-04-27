@@ -1,5 +1,3 @@
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5';
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
@@ -11,48 +9,35 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { fileBase64, fileName, microareas, products } = await req.json();
+    const { imageBase64, mimeType, fileName, microareas, products } = await req.json();
 
-    if (!fileBase64 || !Array.isArray(microareas) || !Array.isArray(products)) {
+    if (!imageBase64 || !Array.isArray(microareas) || !Array.isArray(products)) {
       return new Response(JSON.stringify({ error: 'Parametri mancanti' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Decode base64 to bytes
-    const binary = atob(fileBase64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-    // Parse workbook
-    const wb = XLSX.read(bytes, { type: 'array' });
-    const sheetsText: string[] = [];
-    for (const sn of wb.SheetNames) {
-      const ws = wb.Sheets[sn];
-      // Convert to CSV-like for AI; cap rows to keep prompt reasonable
-      const csv = XLSX.utils.sheet_to_csv(ws, { FS: '|', blankrows: false });
-      const lines = csv.split('\n').slice(0, 400); // safety cap
-      sheetsText.push(`--- Sheet: ${sn} ---\n${lines.join('\n')}`);
-    }
-    const fullText = sheetsText.join('\n\n').slice(0, 60000);
-
     const productNames = products.map((p: any) => p.name);
+    const mt = mimeType || 'image/png';
+    const dataUrl = `data:${mt};base64,${imageBase64}`;
 
-    const systemPrompt = `Sei un assistente che estrae dati di vendita farmaceutici da file Excel aziendali.
+    const systemPrompt = `Sei un assistente che estrae dati di vendita farmaceutici da SCREENSHOT di tabelle aziendali.
+Lo screenshot è relativo a UN SINGOLO PRODOTTO (potrebbe essere visibile in alto o nel titolo).
 Devi restituire SOLO i dati relativi alle microaree dell'utente: ${microareas.join(', ')}.
-Ignora tutte le altre microaree/zone presenti nel file.
+Ignora tutte le altre microaree/zone/righe (totali, altre aree, ecc.).
 I prodotti dell'utente sono: ${productNames.join(', ')}. Mappa i nomi anche se non esattamente identici (case-insensitive, ignora spazi extra).
+Se nello screenshot il prodotto non è chiaro, usa il nome più simile tra quelli dell'utente.
 Per ogni combinazione prodotto+microarea+ciclo estrai:
 - company_target: l'obiettivo aziendale (target/budget/obiettivo) per quel ciclo
 - monthly_sold: array [m1, m2, m3] dei pezzi venduti nei 3 mesi del ciclo (se disponibile)
 I cicli sono: 1=Gen-Mar, 2=Apr-Giu, 3=Lug-Set, 4=Ott-Dic. Usa cycle_index 0..3.
-Se un valore non è disponibile metti null. Non inventare dati.`;
+Se un valore non è disponibile metti null. Non inventare dati. Leggi attentamente i numeri.`;
 
     const tools = [{
       type: 'function',
       function: {
         name: 'extract_company_data',
-        description: 'Estrae i dati aziendali filtrati per microaree utente',
+        description: 'Estrae i dati aziendali dallo screenshot, filtrati per microaree utente',
         parameters: {
           type: 'object',
           properties: {
@@ -92,7 +77,13 @@ Se un valore non è disponibile metti null. Non inventare dati.`;
         model: 'google/gemini-2.5-pro',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `File: ${fileName}\n\nContenuto:\n${fullText}` },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Screenshot${fileName ? ` (${fileName})` : ''}. Estrai i dati per le microaree: ${microareas.join(', ')}.` },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ],
+          },
         ],
         tools,
         tool_choice: { type: 'function', function: { name: 'extract_company_data' } },
