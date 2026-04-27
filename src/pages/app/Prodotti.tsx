@@ -458,6 +458,53 @@ export default function Prodotti() {
                       );
                     })()}
 
+                    {/* Obiettivo aziendale per microarea+ciclo */}
+                    {(() => {
+                      const companyT = getCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle);
+                      const sold = cycleMaTotals.sold;
+                      const remainingCo = Math.max(0, companyT - sold);
+                      const pctCo = companyT > 0 ? Math.min(100, Math.round((sold / companyT) * 100)) : 0;
+                      return (
+                        <div className="bg-primary/5 rounded-xl p-3 border border-primary/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs flex items-center gap-1 font-medium">
+                              <Building className="h-3 w-3" /> Obiettivo aziendale Ciclo {maEditingCycle + 1}
+                            </Label>
+                            {companyT > 0 && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pctCo >= 100 ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{pctCo}%</span>
+                            )}
+                          </div>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={companyT}
+                            onChange={(e) => upsertCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle, Number(e.target.value) || 0)}
+                            className="rounded-lg h-9 text-sm font-semibold mb-2"
+                            placeholder="Pz richiesti dall'azienda"
+                          />
+                          {companyT > 0 && (
+                            <>
+                              <Progress value={pctCo} className="h-2 rounded-full mb-2" />
+                              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Obiettivo</p>
+                                  <p className="font-semibold">{companyT}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Venduti</p>
+                                  <p className="font-semibold text-success">{sold}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Mancano</p>
+                                  <p className="font-semibold text-primary">{remainingCo}</p>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     {/* Tabella mensile */}
                     <div className="bg-secondary/50 rounded-xl p-3">
                       <div className="grid grid-cols-[1fr,1fr,1fr] gap-2 mb-2 text-[10px] text-muted-foreground font-medium px-1">
