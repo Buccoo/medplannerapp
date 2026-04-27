@@ -35,6 +35,14 @@ type MicroareaTarget = {
   sold: number;
 };
 
+type MicroareaCompanyTarget = {
+  id?: string;
+  product_id: string;
+  microarea: string;
+  cycle_index: number;
+  company_target: number;
+};
+
 const cycleLabels = [["Gen", "Feb", "Mar"], ["Apr", "Mag", "Giu"], ["Lug", "Ago", "Set"], ["Ott", "Nov", "Dic"]];
 
 function getCurrentCycleIndex(): number {
@@ -53,6 +61,7 @@ export default function Prodotti() {
   // Microarea targets state
   const [microareas, setMicroareas] = useState<string[]>([]);
   const [maTargets, setMaTargets] = useState<MicroareaTarget[]>([]);
+  const [maCompanyTargets, setMaCompanyTargets] = useState<MicroareaCompanyTarget[]>([]);
   const [maSelectedProduct, setMaSelectedProduct] = useState<string>("");
   const [maSelectedMicroarea, setMaSelectedMicroarea] = useState<string>("");
   const [maEditingCycle, setMaEditingCycle] = useState<number>(getCurrentCycleIndex());
@@ -82,7 +91,13 @@ export default function Prodotti() {
     setMaTargets((data || []) as MicroareaTarget[]);
   };
 
-  useEffect(() => { fetchProducts(); fetchMicroareas(); fetchMicroareaTargets(); }, [user]);
+  const fetchMicroareaCompanyTargets = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("microarea_company_targets").select("*");
+    setMaCompanyTargets((data || []) as MicroareaCompanyTarget[]);
+  };
+
+  useEffect(() => { fetchProducts(); fetchMicroareas(); fetchMicroareaTargets(); fetchMicroareaCompanyTargets(); }, [user]);
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -164,13 +179,38 @@ export default function Prodotti() {
     };
     const { data, error } = await supabase
       .from("microarea_targets")
-      .upsert(payload, { onConflict: "user_id,product_id,microarea,cycle_index,month_index" })
+      .upsert(payload as any, { onConflict: "user_id,product_id,microarea,cycle_index,month_index" })
       .select()
       .single();
     if (error) { toast.error("Errore salvataggio"); return; }
     setMaTargets(prev => {
       const others = prev.filter(t => !(t.product_id === productId && t.microarea === microarea && t.cycle_index === ci && t.month_index === mi));
       return [...others, data as MicroareaTarget];
+    });
+  };
+
+  const getCompanyTarget = (productId: string, microarea: string, ci: number): number => {
+    return maCompanyTargets.find(t => t.product_id === productId && t.microarea === microarea && t.cycle_index === ci)?.company_target ?? 0;
+  };
+
+  const upsertCompanyTarget = async (productId: string, microarea: string, ci: number, value: number) => {
+    if (!user) return;
+    const payload = {
+      user_id: user.id,
+      product_id: productId,
+      microarea,
+      cycle_index: ci,
+      company_target: value,
+    };
+    const { data, error } = await supabase
+      .from("microarea_company_targets")
+      .upsert(payload as any, { onConflict: "user_id,product_id,microarea,cycle_index" })
+      .select()
+      .single();
+    if (error) { toast.error("Errore salvataggio obiettivo aziendale"); return; }
+    setMaCompanyTargets(prev => {
+      const others = prev.filter(t => !(t.product_id === productId && t.microarea === microarea && t.cycle_index === ci));
+      return [...others, data as MicroareaCompanyTarget];
     });
   };
 
@@ -414,6 +454,53 @@ export default function Prodotti() {
                               <p className="font-semibold text-primary">{remaining}</p>
                             </div>
                           </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Obiettivo aziendale per microarea+ciclo */}
+                    {(() => {
+                      const companyT = getCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle);
+                      const sold = cycleMaTotals.sold;
+                      const remainingCo = Math.max(0, companyT - sold);
+                      const pctCo = companyT > 0 ? Math.min(100, Math.round((sold / companyT) * 100)) : 0;
+                      return (
+                        <div className="bg-primary/5 rounded-xl p-3 border border-primary/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs flex items-center gap-1 font-medium">
+                              <Building className="h-3 w-3" /> Obiettivo aziendale Ciclo {maEditingCycle + 1}
+                            </Label>
+                            {companyT > 0 && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pctCo >= 100 ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{pctCo}%</span>
+                            )}
+                          </div>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={companyT}
+                            onChange={(e) => upsertCompanyTarget(maSelectedProduct, maSelectedMicroarea, maEditingCycle, Number(e.target.value) || 0)}
+                            className="rounded-lg h-9 text-sm font-semibold mb-2"
+                            placeholder="Pz richiesti dall'azienda"
+                          />
+                          {companyT > 0 && (
+                            <>
+                              <Progress value={pctCo} className="h-2 rounded-full mb-2" />
+                              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Obiettivo</p>
+                                  <p className="font-semibold">{companyT}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Venduti</p>
+                                  <p className="font-semibold text-success">{sold}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-muted-foreground">Mancano</p>
+                                  <p className="font-semibold text-primary">{remainingCo}</p>
+                                </div>
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })()}
