@@ -17,7 +17,7 @@ export default function Impostazioni() {
   const navigate = useNavigate();
   const { accentHsl, setAccentHsl, colors } = useAccentColor();
   const { user, signOut } = useAuth();
-  const { status, planType } = useSubscription();
+  const { status, planType, isSuperAdmin } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [zona, setZona] = useState("");
@@ -192,6 +192,7 @@ export default function Impostazioni() {
       </div>
 
       {/* Abbonamento */}
+      {!isSuperAdmin && (
       <div className="glass rounded-2xl p-5 shadow-soft mt-6">
         <h2 className="font-semibold mb-4">Abbonamento</h2>
         <div className="flex items-center justify-between mb-3">
@@ -214,6 +215,7 @@ export default function Impostazioni() {
           </button>
         )}
       </div>
+      )}
 
       {/* Logout */}
       <button onClick={signOut}
