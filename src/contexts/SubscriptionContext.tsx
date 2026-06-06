@@ -12,6 +12,7 @@ type SubscriptionContextType = {
   isAccessAllowed: boolean;
   canEdit: boolean;
   isLoading: boolean;
+  isSuperAdmin: boolean;
   refresh: () => Promise<void>;
   checkout: (plan: "mensile" | "annuale") => Promise<void>;
 };
@@ -20,6 +21,8 @@ const PRICES = {
   mensile: "price_1TKN0dLh7Ovc8cezbBgKd2CV",
   annuale: "price_1TKN0eLh7Ovc8cezyshTMSbs",
 };
+
+const SUPER_ADMIN_EMAILS = ["buccolie@gmail.com"];
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
@@ -34,6 +37,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     if (!user) {
       setStatus("none");
+      setIsLoading(false);
+      return;
+    }
+
+    if (user.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      setStatus("active");
+      setPlanType("super_admin");
       setIsLoading(false);
       return;
     }
@@ -74,18 +84,20 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     }
   }, [user, refresh]);
 
+  const isSuperAdmin = !!(user?.email && SUPER_ADMIN_EMAILS.includes(user.email.toLowerCase()));
   const now = new Date();
   const isAccessAllowed =
+    isSuperAdmin ||
     status === "active" ||
     status === "trialing" ||
     status === "loading" ||
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
-  const canEdit = status === "active" || status === "trialing" || status === "loading" ||
+  const canEdit = isSuperAdmin || status === "active" || status === "trialing" || status === "loading" ||
     (status === "grace_period" && gracePeriodEndsAt ? now < gracePeriodEndsAt : false);
 
   return (
-    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, canEdit, isLoading, refresh, checkout }}>
+    <SubscriptionContext.Provider value={{ status, planType, gracePeriodEndsAt, trialEndsAt, isAccessAllowed, canEdit, isLoading, isSuperAdmin, refresh, checkout }}>
       {children}
     </SubscriptionContext.Provider>
   );
