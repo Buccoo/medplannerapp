@@ -3,9 +3,11 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useState } from "react";
 
 export default function SubscriptionBanner() {
-  const { status, gracePeriodEndsAt, trialEndsAt, checkout } = useSubscription();
+  const { status, gracePeriodEndsAt, trialEndsAt, checkout, isSuperAdmin } = useSubscription();
   const [loading, setLoading] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(false);
+
+  if (isSuperAdmin) return null;
 
   const handleCheckout = async (plan: "mensile" | "annuale") => {
     setLoading(plan);
