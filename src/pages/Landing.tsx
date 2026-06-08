@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, Package, ChevronRight, BarChart3, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +16,12 @@ const features = [
 export default function Landing() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/app", { replace: true });
+    }
+  }, [loading, user, navigate]);
 
   return (
     <div className="min-h-screen gradient-hero">
