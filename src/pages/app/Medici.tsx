@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { splitDoctorTitle, stripDoctorTitle } from "@/lib/doctorName";
 
 const weekDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
 const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
@@ -63,7 +64,7 @@ export default function Medici() {
     if (!user) return;
     const { data, error } = await supabase.from("doctors").select("*").order("name");
     if (error) { console.error(error); return; }
-    setDoctors((data || []).map(d => ({
+    const mapped = (data || []).map(d => ({
       ...d,
       paese: d.paese || "",
       microarea: d.microarea || "",
@@ -72,7 +73,11 @@ export default function Medici() {
       target_class: d.target_class || "",
       birth_year: d.birth_year || null,
       office_hours: (d.office_hours as Record<string, string>) || emptyHours(),
-    })));
+    }));
+    mapped.sort((a, b) =>
+      stripDoctorTitle(a.name).localeCompare(stripDoctorTitle(b.name), "it", { sensitivity: "base" })
+    );
+    setDoctors(mapped);
     setLoading(false);
   };
 
@@ -103,7 +108,7 @@ export default function Medici() {
     (filterSpec === "all" || d.specialty === filterSpec) &&
     (filterMicroarea === "all" || d.microarea?.trim().toLowerCase() === filterMicroarea.trim().toLowerCase()) &&
     (filterPaese === "all" || d.paese?.trim().toLowerCase() === filterPaese.trim().toLowerCase()) &&
-    d.name.toLowerCase().includes(search.toLowerCase())
+    stripDoctorTitle(d.name).toLowerCase().includes(search.toLowerCase())
   );
 
   const parseWithAI = async () => {
