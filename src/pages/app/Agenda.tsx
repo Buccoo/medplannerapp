@@ -119,10 +119,22 @@ export default function Agenda() {
     if (selectedPaese) {
       list = list.filter(d => d.paese?.trim().toLowerCase() === selectedPaese.trim().toLowerCase());
     }
-    if (doctorSearch) {
-      list = list.filter(d => d.name.toLowerCase().includes(doctorSearch.toLowerCase()));
+    const norm = (s: string) =>
+      s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    if (doctorSearch.trim()) {
+      const q = norm(doctorSearch.trim());
+      list = list.filter(d =>
+        norm(d.name).split(/[\s,.'-]+/).some(w => w.startsWith(q))
+      );
     }
-    return list;
+    const seen = new Map<string, typeof list[number]>();
+    for (const d of list) {
+      const k = norm(d.name).trim();
+      if (k && !seen.has(k)) seen.set(k, d);
+    }
+    return Array.from(seen.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+    );
   }, [doctors, doctorSearch, selectedPaese, selectedMicroarea]);
 
   const fetchAppointments = async () => {

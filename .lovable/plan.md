@@ -1,30 +1,44 @@
-## Problema
+## Problemi nella ricerca medico (Agenda → Nuovo Appuntamento)
 
-Su iPhone la `BottomNav` è ancorata a `bottom-0`, sovrapponendosi alla zona di swipe del sistema (home indicator). Questo causa:
-- Tap "persi" perché iOS intercetta il gesto per cambiare app
-- Necessità di toccare due volte per cambiare pagina
+In `src/pages/app/Agenda.tsx`, `filteredDoctors` usa `name.toLowerCase().includes(...)` e non deduplica né riordina.
 
-## Soluzione
+### Fix
 
-Sollevare leggermente la bottom nav e rispettare la safe-area inferiore dell'iPhone, senza cambiare nient'altro del comportamento o del look.
+1. **Match solo per iniziali** (parole del nome): tokenizzare `d.name` su spazi/punteggiatura e controllare che almeno una parola **inizi** con la stringa di ricerca (case-insensitive, accent-insensitive). Es. "B" trova "Bianchi Marco" ma non "Alberti".
+   - Se l'utente scrive più caratteri (es. "Bia"), continua a fare prefix-match su parola.
 
-### Modifiche
+2. **Ordinamento alfabetico**: ordinare `filteredDoctors` con `localeCompare(..., "it", { sensitivity: "base" })`.
 
-1. **`src/components/BottomNav.tsx`**
-   - Sostituire `bottom-0` con un offset che combina:
-     - `env(safe-area-inset-bottom)` (gestisce automaticamente il notch/home indicator)
-     - un piccolo padding extra (~8px) per allontanarla dalla zona di swipe
-   - Rimuovere la classe placeholder `safe-area-pb` (non definita in `index.css`) e usare uno stile inline `paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)'` oppure `bottom: 'calc(env(safe-area-inset-bottom) + 8px)'`.
+3. **Deduplica**: rimuovere medici con lo stesso `name` (normalizzato: trim + lowercase) tramite `Map`, mantenendo la prima occorrenza. La duplicazione può derivare da record duplicati nel DB o dal mix dei filtri.
 
-2. **`src/layouts/AppLayout.tsx`**
-   - Aumentare il padding inferiore del contenitore da `pb-20` a qualcosa come `pb-28` (oppure `style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}`) così il contenuto non viene coperto dalla nav rialzata.
+### Modifica
 
-3. **`index.html`** (verifica)
-   - Assicurarsi che il meta viewport includa `viewport-fit=cover`, necessario perché `env(safe-area-inset-bottom)` funzioni su iOS. Se manca, aggiungerlo.
+Solo `src/pages/app/Agenda.tsx`, `useMemo filteredDoctors`:
 
-### Verifica
+```ts
+const norm = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-- Controllo in preview mobile (430×777) che la nav sia visibile, non tagliata, e il contenuto delle pagine (Dashboard, Agenda, Medici, Farmacie, Prodotti) non finisca sotto la nav.
-- Verifica che il pulsante centrale Home (rialzato di `-top-5`) e il badge Admin (`-top-4`) restino correttamente posizionati rispetto al nuovo offset.
+const filteredDoctors = useMemo(() => {
+  let list = doctors;
+  if (selectedMicroarea) list = list.filter(d => d.microarea?.trim().toLowerCase() === selectedMicroarea.trim().toLowerCase());
+  if (selectedPaese)     list = list.filter(d => d.paese?.trim().toLowerCase() === selectedPaese.trim().toLowerCase());
+  if (doctorSearch) {
+    const q = norm(doctorSearch.trim());
+    list = list.filter(d =>
+      norm(d.name).split(/[\s,.'-]+/).some(w => w.startsWith(q))
+    );
+  }
+  // dedup per nome normalizzato
+  const seen = new Map<string, typeof list[number]>();
+  for (const d of list) {
+    const k = norm(d.name).trim();
+    if (!seen.has(k)) seen.set(k, d);
+  }
+  return Array.from(seen.values()).sort((a, b) =>
+    a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+  );
+}, [doctors, doctorSearch, selectedPaese, selectedMicroarea]);
+```
 
-Nessuna modifica a logica di routing o stato: il problema è puramente di posizionamento/CSS.
+Nessun'altra modifica.
