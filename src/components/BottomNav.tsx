@@ -24,7 +24,7 @@ export default function BottomNav() {
         className="relative"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
-        <div className="flex items-stretch justify-around h-[68px] max-w-lg mx-auto">
+        <div className="flex items-stretch justify-around h-[56px] max-w-lg mx-auto">
           {leftTabs.map((t) => (
             <NavLink
               key={t.to}
