@@ -19,7 +19,10 @@ export default function BottomNav() {
   const { isAdmin } = useAdmin();
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 safe-area-pb">
+    <nav
+      className="fixed inset-x-0 z-50"
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
+    >
       <div className="relative glass-strong border-t">
         <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
           {leftTabs.map((t) => (
