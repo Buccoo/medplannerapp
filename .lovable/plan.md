@@ -1,29 +1,51 @@
-## Problemi
+## 1. Auto-redirect utente loggato
 
-1. La navbar è "volante" perché ha `bottom: calc(env(safe-area-inset-bottom) + 10px)`. Su iOS, quando l'address bar di Safari si nasconde/mostra (scroll up/down), `100dvh` cambia e la nav appare spostarsi. Inoltre lascia un gap trasparente in basso da cui si vede il contenuto.
-2. Il tap su "Agenda" (e altri) a volte fallisce: probabilmente perché il button rotondo "Home" centrale (`-top-5`, h-14 w-14, z-implicit dentro `relative`) si sovrappone parzialmente alle aree tap delle voci adiacenti e/o intercetta tap pensati per Agenda quando il dito tocca poco sotto il bordo.
+`src/pages/Landing.tsx`: aggiungere `useEffect` che, quando `loading === false && user` è valido, esegue `navigate("/app", { replace: true })`. Così l'utente già autenticato salta del tutto la landing senza dover cliccare "Vai all'app". I bottoni esistenti restano come fallback per il brevissimo flash prima del redirect.
 
-## Soluzione
+## 2. Titolo "Dr." come badge, ignorato nella ricerca/ordinamento
 
-Rendere la navbar veramente fissa al fondo e opaca, alzando solo i contenuti (icone/etichette) sopra l'area swipe iPhone — non l'intera nav.
+### Nuovo helper `src/lib/doctorName.ts`
 
-### Modifiche a `src/components/BottomNav.tsx`
+```ts
+const TITLE_RE = /^\s*(prof\.?\s*ssa|prof\.?|dott\.?\s*ssa|dr\.?\s*ssa|dott\.?|dr\.?)\s+/i;
 
-- Ancorare la nav a `bottom: 0`, `left: 0`, `right: 0`.
-- Aggiungere `paddingBottom: env(safe-area-inset-bottom)` al wrapper interno così la barra riempie fino al bordo dello schermo (niente gap), ma le icone restano sopra l'home indicator.
-- Aumentare leggermente l'altezza tap area: portare `h-16` a `h-[68px]` e aggiungere un padding-top extra per "respiro" rispetto al pulsante Home rialzato.
-- Rendere lo sfondo solido (rimuovere `glass-strong` translucido → usare `bg-background/95` con `border-t` per coerenza, così non si vede il contenuto dietro).
-- Dare al pulsante Home centrale `pointer-events-auto` e ai NavLink laterali un'area cliccabile più ampia con `flex-1 min-w-0` invece di `px-3 py-1`, così "Agenda" copre tutto lo spazio fra il bordo sinistro e il pulsante centrale.
-- Assicurarsi che il pulsante Home centrale non si estenda lateralmente sopra Agenda/Farmacie: lo spacer centrale resta `w-16` e il bottone resta `w-14`, ma lo wrapper del bottone Home prende `pointer-events-none` sull'area trasparente attorno (solo il cerchio è cliccabile) → impostiamo `pointer-events-none` sul container assoluto e `pointer-events-auto` sul cerchio + label.
+export function splitDoctorTitle(fullName: string): { title: string; name: string } {
+  const m = (fullName || "").match(TITLE_RE);
+  if (!m) return { title: "", name: (fullName || "").trim() };
+  const raw = m[1].toLowerCase().replace(/\s+/g, "");
+  const map: Record<string, string> = {
+    "dr": "Dr.", "dr.": "Dr.",
+    "drssa": "Dr.ssa", "dr.ssa": "Dr.ssa",
+    "dott": "Dott.", "dott.": "Dott.",
+    "dottssa": "Dott.ssa", "dott.ssa": "Dott.ssa",
+    "prof": "Prof.", "prof.": "Prof.",
+    "profssa": "Prof.ssa", "prof.ssa": "Prof.ssa",
+  };
+  return { title: map[raw] ?? m[1].trim(), name: fullName.slice(m[0].length).trim() };
+}
 
-### Modifiche a `src/layouts/AppLayout.tsx`
+export const stripDoctorTitle = (n: string) => splitDoctorTitle(n).name;
+```
 
-- Sostituire il padding inline con `paddingBottom: calc(env(safe-area-inset-bottom) + 5.5rem)` (perché la nav ora include la safe-area al suo interno, quindi il contenuto deve solo evitare l'altezza visibile della nav + la safe-area una sola volta — manteniamo conservativo).
+### `src/pages/app/Medici.tsx`
 
-### Verifica
+- Importare `splitDoctorTitle` / `stripDoctorTitle`.
+- Fetch: dopo `select("*").order("name")` ordinare lato client per `stripDoctorTitle(name)` con `localeCompare("it", { sensitivity: "base" })`.
+- `filtered`: confrontare `stripDoctorTitle(d.name).toLowerCase().includes(search.toLowerCase())`.
+- Card medico (linea 309-312): l'iniziale dell'avatar deve usare `stripDoctorTitle(d.name).split(" ").slice(-1)[0]?.[0]`. Aggiungere un `Badge` accanto al nome con il titolo (`{title}` se presente). Il nome mostrato resta `d.name` completo? → No, mostrare `stripDoctorTitle(d.name)` con badge a sinistra del nome — così la D non confonde più visivamente.
+- Sheet/dettaglio: stessa cosa nel titolo (`<SheetTitle>`).
 
-- Apertura preview mobile (430×777), tap rapidi su Agenda/Medici/Farmacie/Prodotti e verifica navigazione immediata.
-- Scroll su/giù: la nav rimane incollata al bordo inferiore senza spostamenti.
-- Nessun contenuto visibile sotto la nav.
+### `src/pages/app/Agenda.tsx` (ricerca medico)
 
-Nessuna modifica a logica di routing.
+Estendere il `useMemo filteredDoctors` già aggiornato:
+- Normalizzare anche rimuovendo il titolo prima dello split per parole: `norm(stripDoctorTitle(d.name)).split(...)`.
+- Ordinamento alfabetico con `stripDoctorTitle` lato confronto.
+- La visualizzazione del nome nei suggerimenti può restare `d.name` (con "Dr."): non confonde l'ordine perché ora il sort è sul nome stripped.
+
+## Verifica
+
+- Logout → la landing si vede. Login → al refresh della "/" si finisce subito in `/app`.
+- In Medici, ricerca per "Ros" trova "Dr. Rossi" e "Rossini"; i Dr. compaiono nell'ordine alfabetico del cognome, non tutti raggruppati sotto la D. Badge "Dr." visibile sulla card.
+- In Agenda → Nuovo appuntamento, digitando "B" appaiono solo i medici il cui nome (senza titolo) inizia per B.
+
+Nessuna modifica al DB.

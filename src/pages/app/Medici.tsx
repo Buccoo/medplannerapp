@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { splitDoctorTitle, stripDoctorTitle } from "@/lib/doctorName";
 
 const weekDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
 const specialties = ["MMG", "PED", "ORL", "GIN", "INT", "GASTRO"];
@@ -63,7 +64,7 @@ export default function Medici() {
     if (!user) return;
     const { data, error } = await supabase.from("doctors").select("*").order("name");
     if (error) { console.error(error); return; }
-    setDoctors((data || []).map(d => ({
+    const mapped = (data || []).map(d => ({
       ...d,
       paese: d.paese || "",
       microarea: d.microarea || "",
@@ -72,7 +73,11 @@ export default function Medici() {
       target_class: d.target_class || "",
       birth_year: d.birth_year || null,
       office_hours: (d.office_hours as Record<string, string>) || emptyHours(),
-    })));
+    }));
+    mapped.sort((a, b) =>
+      stripDoctorTitle(a.name).localeCompare(stripDoctorTitle(b.name), "it", { sensitivity: "base" })
+    );
+    setDoctors(mapped);
     setLoading(false);
   };
 
@@ -103,7 +108,7 @@ export default function Medici() {
     (filterSpec === "all" || d.specialty === filterSpec) &&
     (filterMicroarea === "all" || d.microarea?.trim().toLowerCase() === filterMicroarea.trim().toLowerCase()) &&
     (filterPaese === "all" || d.paese?.trim().toLowerCase() === filterPaese.trim().toLowerCase()) &&
-    d.name.toLowerCase().includes(search.toLowerCase())
+    stripDoctorTitle(d.name).toLowerCase().includes(search.toLowerCase())
   );
 
   const parseWithAI = async () => {
@@ -301,15 +306,20 @@ export default function Medici() {
 
       <div className="space-y-3">
         {filtered.length === 0 && <div className="text-center py-12 text-muted-foreground text-sm">Nessun medico</div>}
-        {filtered.map((d, i) => (
+        {filtered.map((d, i) => {
+          const { title, name: cleanName } = splitDoctorTitle(d.name);
+          return (
           <motion.div key={d.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             onClick={() => setSelected(d)}
             className="glass rounded-2xl p-4 shadow-soft flex items-center gap-4 cursor-pointer hover:shadow-glow transition-shadow">
             <div className="h-11 w-11 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-              {d.name.split(" ").slice(-1)[0]?.[0] || "?"}
+              {cleanName.split(" ")[0]?.[0]?.toUpperCase() || "?"}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{d.name}</p>
+              <p className="font-medium truncate flex items-center gap-1.5">
+                {title && <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">{title}</span>}
+                <span className="truncate">{cleanName}</span>
+              </p>
               <p className="text-xs text-muted-foreground">{d.specialty}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{d.paese}</span>
@@ -319,7 +329,8 @@ export default function Medici() {
               </div>
             </div>
           </motion.div>
-        ))}
+          );
+        })}
       </div>
 
       <Sheet open={!!selected} onOpenChange={(open) => { if (!open) { setSelected(null); setEditing(false); } }}>

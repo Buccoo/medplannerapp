@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { stripDoctorTitle } from "@/lib/doctorName";
 import {
   format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval,
   isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO
@@ -124,16 +125,16 @@ export default function Agenda() {
     if (doctorSearch.trim()) {
       const q = norm(doctorSearch.trim());
       list = list.filter(d =>
-        norm(d.name).split(/[\s,.'-]+/).some(w => w.startsWith(q))
+        norm(stripDoctorTitle(d.name)).split(/[\s,.'-]+/).some(w => w.startsWith(q))
       );
     }
     const seen = new Map<string, typeof list[number]>();
     for (const d of list) {
-      const k = norm(d.name).trim();
+      const k = norm(stripDoctorTitle(d.name)).trim();
       if (k && !seen.has(k)) seen.set(k, d);
     }
     return Array.from(seen.values()).sort((a, b) =>
-      a.name.localeCompare(b.name, "it", { sensitivity: "base" })
+      stripDoctorTitle(a.name).localeCompare(stripDoctorTitle(b.name), "it", { sensitivity: "base" })
     );
   }, [doctors, doctorSearch, selectedPaese, selectedMicroarea]);
 
