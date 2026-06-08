@@ -4,7 +4,10 @@ import SubscriptionBanner from "@/components/SubscriptionBanner";
 
 export default function AppLayout() {
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div
+      className="min-h-screen bg-background"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 6.5rem)" }}
+    >
       <SubscriptionBanner />
       <Outlet />
       <BottomNav />
