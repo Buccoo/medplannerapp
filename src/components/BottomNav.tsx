@@ -19,19 +19,19 @@ export default function BottomNav() {
   const { isAdmin } = useAdmin();
 
   return (
-    <nav
-      className="fixed inset-x-0 z-50"
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)" }}
-    >
-      <div className="relative glass-strong border-t">
-        <div className="flex items-center justify-around h-16 max-w-lg mx-auto">
+    <nav className="fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border">
+      <div
+        className="relative"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      >
+        <div className="flex items-stretch justify-around h-[68px] max-w-lg mx-auto">
           {leftTabs.map((t) => (
             <NavLink
               key={t.to}
               to={t.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center gap-0.5 text-[11px] font-medium transition-colors px-3 py-1",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors min-w-0",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )
               }
@@ -46,7 +46,7 @@ export default function BottomNav() {
           ))}
 
           {/* Spacer for center button */}
-          <div className="w-16" />
+          <div className="w-16 shrink-0" aria-hidden />
 
           {rightTabs.map((t) => (
             <NavLink
@@ -54,7 +54,7 @@ export default function BottomNav() {
               to={t.to}
               className={({ isActive }) =>
                 cn(
-                  "flex flex-col items-center gap-0.5 text-[11px] font-medium transition-colors px-3 py-1",
+                  "flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors min-w-0",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )
               }
@@ -69,12 +69,13 @@ export default function BottomNav() {
           ))}
         </div>
 
-        {/* Center Home button - elevated */}
-        <NavLink
-          to={homeTab.to}
-          end
-          className="absolute left-1/2 -translate-x-1/2 -top-5 flex flex-col items-center"
-        >
+        {/* Center Home button - elevated. Wrapper is non-interactive so it never steals taps from Agenda/Farmacie. */}
+        <div className="absolute left-1/2 -translate-x-1/2 -top-5 pointer-events-none">
+          <NavLink
+            to={homeTab.to}
+            end
+            className="flex flex-col items-center pointer-events-auto"
+          >
           {({ isActive }) => (
             <>
               <div className={cn(
@@ -93,7 +94,8 @@ export default function BottomNav() {
               </span>
             </>
           )}
-        </NavLink>
+          </NavLink>
+        </div>
 
         {/* Admin button - top right */}
         {isAdmin && (
