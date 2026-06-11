@@ -1,51 +1,19 @@
-## 1. Auto-redirect utente loggato
+## Obiettivo
+Popolare l'account `buccolie@gmail.com` (user_id `3aeae7d8-9d74-4fee-9d2e-07249b7ff223`) con dati di esempio realistici, senza toccare gli altri account.
 
-`src/pages/Landing.tsx`: aggiungere `useEffect` che, quando `loading === false && user` è valido, esegue `navigate("/app", { replace: true })`. Così l'utente già autenticato salta del tutto la landing senza dover cliccare "Vai all'app". I bottoni esistenti restano come fallback per il brevissimo flash prima del redirect.
+## Dati da inserire
 
-## 2. Titolo "Dr." come badge, ignorato nella ricerca/ordinamento
+Tutti gli `INSERT` filtrano esplicitamente sul `user_id` di buccolie. Nessun altro utente verrà modificato.
 
-### Nuovo helper `src/lib/doctorName.ts`
+**Medici (~10)** — mix di specialità (MMG, Cardiologo, Pediatra, Ginecologo, Ortopedico, Dermatologo, ecc.), alcuni con prefisso "Dr."/"Dott."/"Prof." per testare il badge titolo, `paese` e `microarea` realistici (Milano Nord, Milano Sud, Monza…), `visits`, `k_client`/`c_client`, `target_class` (A/B/C).
 
-```ts
-const TITLE_RE = /^\s*(prof\.?\s*ssa|prof\.?|dott\.?\s*ssa|dr\.?\s*ssa|dott\.?|dr\.?)\s+/i;
+**Farmacie (~8)** — nomi tipo "Farmacia Centrale", "Farmacia San Marco", indirizzi, telefoni, paese/microarea coerenti con i medici, qualche nota.
 
-export function splitDoctorTitle(fullName: string): { title: string; name: string } {
-  const m = (fullName || "").match(TITLE_RE);
-  if (!m) return { title: "", name: (fullName || "").trim() };
-  const raw = m[1].toLowerCase().replace(/\s+/g, "");
-  const map: Record<string, string> = {
-    "dr": "Dr.", "dr.": "Dr.",
-    "drssa": "Dr.ssa", "dr.ssa": "Dr.ssa",
-    "dott": "Dott.", "dott.": "Dott.",
-    "dottssa": "Dott.ssa", "dott.ssa": "Dott.ssa",
-    "prof": "Prof.", "prof.": "Prof.",
-    "profssa": "Prof.ssa", "prof.ssa": "Prof.ssa",
-  };
-  return { title: map[raw] ?? m[1].trim(), name: fullName.slice(m[0].length).trim() };
-}
+**Prodotti (~5)** — nomi farmaceutici inventati (Cardiomax, Pediavit, Dermolen, Gastroease, Osteoflex), con `cycles` jsonb (es. 3 cicli con target), `sold`, `company_forecast`, `cycle_targets_override`.
 
-export const stripDoctorTitle = (n: string) => splitDoctorTitle(n).name;
-```
+**Appuntamenti (~15)** — distribuiti tra ieri, oggi e prossime 3 settimane. Mix di `type` (visita/farmacia) e `status` (programmato/completato/annullato), con `name`, `date`, `time`, alcuni con `products` jsonb riferiti ai prodotti creati e qualche nota di visita.
 
-### `src/pages/app/Medici.tsx`
-
-- Importare `splitDoctorTitle` / `stripDoctorTitle`.
-- Fetch: dopo `select("*").order("name")` ordinare lato client per `stripDoctorTitle(name)` con `localeCompare("it", { sensitivity: "base" })`.
-- `filtered`: confrontare `stripDoctorTitle(d.name).toLowerCase().includes(search.toLowerCase())`.
-- Card medico (linea 309-312): l'iniziale dell'avatar deve usare `stripDoctorTitle(d.name).split(" ").slice(-1)[0]?.[0]`. Aggiungere un `Badge` accanto al nome con il titolo (`{title}` se presente). Il nome mostrato resta `d.name` completo? → No, mostrare `stripDoctorTitle(d.name)` con badge a sinistra del nome — così la D non confonde più visivamente.
-- Sheet/dettaglio: stessa cosa nel titolo (`<SheetTitle>`).
-
-### `src/pages/app/Agenda.tsx` (ricerca medico)
-
-Estendere il `useMemo filteredDoctors` già aggiornato:
-- Normalizzare anche rimuovendo il titolo prima dello split per parole: `norm(stripDoctorTitle(d.name)).split(...)`.
-- Ordinamento alfabetico con `stripDoctorTitle` lato confronto.
-- La visualizzazione del nome nei suggerimenti può restare `d.name` (con "Dr."): non confonde l'ordine perché ora il sort è sul nome stripped.
-
-## Verifica
-
-- Logout → la landing si vede. Login → al refresh della "/" si finisce subito in `/app`.
-- In Medici, ricerca per "Ros" trova "Dr. Rossi" e "Rossini"; i Dr. compaiono nell'ordine alfabetico del cognome, non tutti raggruppati sotto la D. Badge "Dr." visibile sulla card.
-- In Agenda → Nuovo appuntamento, digitando "B" appaiono solo i medici il cui nome (senza titolo) inizia per B.
-
-Nessuna modifica al DB.
+## Tecnica
+- Un solo `INSERT` tramite supabase--insert per ciascuna tabella, in ordine: doctors → pharmacies → products → appointments.
+- Nessuna modifica di schema, nessuna migrazione.
+- Nessuna eliminazione di dati esistenti.
