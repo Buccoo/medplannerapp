@@ -22,7 +22,7 @@ const PRICES = {
   annuale: "price_1TKN0eLh7Ovc8cezyshTMSbs",
 };
 
-const SUPER_ADMIN_EMAILS = ["buccolie@gmail.com"];
+const SUPER_ADMIN_EMAILS = ["buccolie@gmail.com", "valentina.picci99@gmail.com"];
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
