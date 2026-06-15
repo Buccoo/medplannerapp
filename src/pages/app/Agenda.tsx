@@ -88,6 +88,7 @@ export default function Agenda() {
   const [microareaTowns, setMicroareaTowns] = useState<Record<string, string[]>>({});
   const [dailyPriority, setDailyPriority] = useState("");
   const [priorityLoaded, setPriorityLoaded] = useState(false);
+  const [prioritySaving, setPrioritySaving] = useState(false);
 
   const MICROAREAS = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
 
