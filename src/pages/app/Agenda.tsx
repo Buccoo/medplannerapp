@@ -479,14 +479,30 @@ export default function Agenda() {
       <div className="space-y-2.5">
         {viewMode !== "month" && (
           <div className="glass rounded-2xl p-3 shadow-soft mb-1">
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
-                <Flag className="h-3.5 w-3.5 text-warning" />
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
+                  <Flag className="h-3.5 w-3.5 text-warning" />
+                </div>
+                <p className="text-xs font-semibold">
+                  Priorità della giornata
+                  <span className="text-muted-foreground font-normal ml-1 capitalize">· {format(selectedDate, "EEE d MMM", { locale: it })}</span>
+                </p>
               </div>
-              <p className="text-xs font-semibold">
-                Priorità della giornata
-                <span className="text-muted-foreground font-normal ml-1 capitalize">· {format(selectedDate, "EEE d MMM", { locale: it })}</span>
-              </p>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={savePriority}
+                disabled={!priorityLoaded || !canEdit || prioritySaving}
+              >
+                {prioritySaving ? (
+                  <span className="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full mr-1" />
+                ) : (
+                  <Check className="h-3.5 w-3.5 mr-1" />
+                )}
+                Salva
+              </Button>
             </div>
             <Textarea
               value={dailyPriority}
