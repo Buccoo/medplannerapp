@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
   FileSpreadsheet, Check, CalendarDays, CalendarRange, Calendar as CalendarIcon,
-  X, Upload, Trash2
+  X, Upload, Trash2, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -86,6 +86,8 @@ export default function Agenda() {
   const [selectedPaese, setSelectedPaese] = useState("");
   const [selectedMicroarea, setSelectedMicroarea] = useState("");
   const [microareaTowns, setMicroareaTowns] = useState<Record<string, string[]>>({});
+  const [dailyPriority, setDailyPriority] = useState("");
+  const [priorityLoaded, setPriorityLoaded] = useState(false);
 
   const MICROAREAS = ["LE07", "LE08", "LE09", "LE10", "LE11", "LE12", "LE13"];
 
@@ -167,6 +169,30 @@ export default function Agenda() {
   };
 
   useEffect(() => { fetchAppointments(); fetchDoctors(); fetchMicroareaTowns(); }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    setPriorityLoaded(false);
+    supabase
+      .from("daily_priorities")
+      .select("content")
+      .eq("user_id", user.id)
+      .eq("date", dateStr)
+      .maybeSingle()
+      .then(({ data }) => {
+        setDailyPriority(data?.content || "");
+        setPriorityLoaded(true);
+      });
+  }, [user, selectedDate]);
+
+  const savePriority = async () => {
+    if (!user || !canEdit) return;
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    await supabase
+      .from("daily_priorities")
+      .upsert({ user_id: user.id, date: dateStr, content: dailyPriority }, { onConflict: "user_id,date" });
+  };
 
   const navigateDate = (dir: 1 | -1) => {
     if (viewMode === "day") setSelectedDate(prev => addDays(prev, dir));
@@ -442,6 +468,27 @@ export default function Agenda() {
 
       {/* Appointments list */}
       <div className="space-y-2.5">
+        {viewMode !== "month" && (
+          <div className="glass rounded-2xl p-3 shadow-soft mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Flag className="h-3.5 w-3.5 text-warning" />
+              </div>
+              <p className="text-xs font-semibold">
+                Priorità della giornata
+                <span className="text-muted-foreground font-normal ml-1 capitalize">· {format(selectedDate, "EEE d MMM", { locale: it })}</span>
+              </p>
+            </div>
+            <Textarea
+              value={dailyPriority}
+              onChange={(e) => setDailyPriority(e.target.value)}
+              onBlur={savePriority}
+              disabled={!priorityLoaded || !canEdit}
+              placeholder="Scrivi le priorità per oggi…"
+              className="rounded-xl min-h-[70px] text-sm bg-transparent"
+            />
+          </div>
+        )}
         {todayAppointments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground text-sm">Nessun appuntamento</div>
         ) : (
