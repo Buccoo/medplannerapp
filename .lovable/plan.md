@@ -1,19 +1,28 @@
 ## Obiettivo
-Popolare l'account `buccolie@gmail.com` (user_id `3aeae7d8-9d74-4fee-9d2e-07249b7ff223`) con dati di esempio realistici, senza toccare gli altri account.
+Aggiungere uno slot "Priorità della giornata" nella pagina **Agenda**, posizionato tra il calendario (selettore giorni) e la lista degli appuntamenti, visibile nelle viste **Giorno** e **Settimana** (non in Mese).
 
-## Dati da inserire
+## Cosa cambia per l'utente
+- Sotto al calendario settimanale (o sotto all'header navigazione data in vista Giorno) compare una card con titolo "Priorità della giornata".
+- L'utente può scrivere/modificare un testo libero (es. elenco priorità) per la **data selezionata**.
+- Il testo viene salvato automaticamente (debounce alla perdita di focus) ed è specifico per giorno e per utente.
+- Cambiando giorno, la card mostra le priorità di quel giorno (vuota se non impostate).
 
-Tutti gli `INSERT` filtrano esplicitamente sul `user_id` di buccolie. Nessun altro utente verrà modificato.
+## Dettagli tecnici
 
-**Medici (~10)** — mix di specialità (MMG, Cardiologo, Pediatra, Ginecologo, Ortopedico, Dermatologo, ecc.), alcuni con prefisso "Dr."/"Dott."/"Prof." per testare il badge titolo, `paese` e `microarea` realistici (Milano Nord, Milano Sud, Monza…), `visits`, `k_client`/`c_client`, `target_class` (A/B/C).
+### Nuova tabella `daily_priorities`
+Migration:
+```
+id uuid pk, user_id uuid, date date, content text, created_at, updated_at
+UNIQUE (user_id, date)
+```
+- GRANT su `authenticated` + `service_role`.
+- RLS: policy `auth.uid() = user_id` per SELECT/INSERT/UPDATE/DELETE.
 
-**Farmacie (~8)** — nomi tipo "Farmacia Centrale", "Farmacia San Marco", indirizzi, telefoni, paese/microarea coerenti con i medici, qualche nota.
+### Modifica `src/pages/app/Agenda.tsx`
+- Stato `dailyPriority: string` + `prioritySaving: boolean`.
+- `useEffect` su `selectedDate` → fetch `daily_priorities` per quella data.
+- Funzione `savePriority()` che fa upsert su `(user_id, date)` al `onBlur` del textarea (o debounce 800ms), bloccata se `!canEdit`.
+- Inserire il nuovo blocco JSX **dopo** il calendario settimanale / header (riga ~415) e **prima** della lista appuntamenti (riga ~443), renderizzato solo quando `viewMode !== "month"`.
+- Stile coerente: card `glass rounded-2xl p-3 shadow-soft` con icona ⭐/Flag, label "Priorità della giornata · {data}" e `Textarea` compatto (min-h ~70px), placeholder "Scrivi le priorità per oggi…".
 
-**Prodotti (~5)** — nomi farmaceutici inventati (Cardiomax, Pediavit, Dermolen, Gastroease, Osteoflex), con `cycles` jsonb (es. 3 cicli con target), `sold`, `company_forecast`, `cycle_targets_override`.
-
-**Appuntamenti (~15)** — distribuiti tra ieri, oggi e prossime 3 settimane. Mix di `type` (visita/farmacia) e `status` (programmato/completato/annullato), con `name`, `date`, `time`, alcuni con `products` jsonb riferiti ai prodotti creati e qualche nota di visita.
-
-## Tecnica
-- Un solo `INSERT` tramite supabase--insert per ciascuna tabella, in ordine: doctors → pharmacies → products → appointments.
-- Nessuna modifica di schema, nessuna migrazione.
-- Nessuna eliminazione di dati esistenti.
+Nessuna modifica ad altre pagine o alla logica appuntamenti.
