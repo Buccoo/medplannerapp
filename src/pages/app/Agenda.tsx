@@ -468,6 +468,27 @@ export default function Agenda() {
 
       {/* Appointments list */}
       <div className="space-y-2.5">
+        {viewMode !== "month" && (
+          <div className="glass rounded-2xl p-3 shadow-soft mb-1">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="h-7 w-7 rounded-lg bg-warning/10 flex items-center justify-center">
+                <Flag className="h-3.5 w-3.5 text-warning" />
+              </div>
+              <p className="text-xs font-semibold">
+                Priorità della giornata
+                <span className="text-muted-foreground font-normal ml-1 capitalize">· {format(selectedDate, "EEE d MMM", { locale: it })}</span>
+              </p>
+            </div>
+            <Textarea
+              value={dailyPriority}
+              onChange={(e) => setDailyPriority(e.target.value)}
+              onBlur={savePriority}
+              disabled={!priorityLoaded || !canEdit}
+              placeholder="Scrivi le priorità per oggi…"
+              className="rounded-xl min-h-[70px] text-sm bg-transparent"
+            />
+          </div>
+        )}
         {todayAppointments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground text-sm">Nessun appuntamento</div>
         ) : (
