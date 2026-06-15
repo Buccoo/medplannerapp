@@ -188,11 +188,19 @@ export default function Agenda() {
   }, [user, selectedDate]);
 
   const savePriority = async () => {
-    if (!user || !canEdit) return;
+    if (!user || !canEdit || prioritySaving) return;
+    setPrioritySaving(true);
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    await supabase
-      .from("daily_priorities")
-      .upsert({ user_id: user.id, date: dateStr, content: dailyPriority }, { onConflict: "user_id,date" });
+    try {
+      await supabase
+        .from("daily_priorities")
+        .upsert({ user_id: user.id, date: dateStr, content: dailyPriority }, { onConflict: "user_id,date" });
+      toast.success("Priorità salvate");
+    } catch {
+      toast.error("Errore nel salvataggio");
+    } finally {
+      setPrioritySaving(false);
+    }
   };
 
   const navigateDate = (dir: 1 | -1) => {
