@@ -1,28 +1,18 @@
 ## Obiettivo
-Aggiungere uno slot "Priorità della giornata" nella pagina **Agenda**, posizionato tra il calendario (selettore giorni) e la lista degli appuntamenti, visibile nelle viste **Giorno** e **Settimana** (non in Mese).
+Nel dialog "Nuovo Appuntamento", subito sotto il badge con l'orario ambulatoriale del medico, mostrare gli appuntamenti già fissati per quel giorno che rientrano nella fascia oraria dell'ambulatorio, così da vedere a colpo d'occhio gli slot liberi.
 
-## Cosa cambia per l'utente
-- Sotto al calendario settimanale (o sotto all'header navigazione data in vista Giorno) compare una card con titolo "Priorità della giornata".
-- L'utente può scrivere/modificare un testo libero (es. elenco priorità) per la **data selezionata**.
-- Il testo viene salvato automaticamente (debounce alla perdita di focus) ed è specifico per giorno e per utente.
-- Cambiando giorno, la card mostra le priorità di quel giorno (vuota se non impostate).
+## Comportamento
+- Compare solo quando: medico selezionato + il medico ha un orario ambulatoriale per il giorno selezionato.
+- Mostra elenco compatto degli appuntamenti dell'utente per quella data il cui orario cade nell'intervallo (es. 09:00–11:00) dell'ambulatorio, ordinati per orario.
+- Ogni riga: orario · nome (medico/farmacia) · badge stato.
+- Se nessun appuntamento in quella fascia: messaggio "Nessun appuntamento in questa fascia — slot liberi".
+- Non blocca l'inserimento (è solo informativo).
 
-## Dettagli tecnici
+## Dettagli tecnici (src/pages/app/Agenda.tsx)
+- Riutilizzo lo stato `appointments` già caricato.
+- Parsing orario ambulatorio: split su `-` → `startHH:MM`, `endHH:MM`; confronto stringhe `HH:MM` (già formato usato).
+- `const slotApps = appointments.filter(a => isSameDay(a.date, selectedDate) && a.time >= start && a.time <= end).sort((a,b) => a.time.localeCompare(b.time))`.
+- Blocco JSX inserito subito dopo l'attuale badge "Ambulatorio {giorno}: {orario}" nel dialog.
+- Stile: piccola card `bg-muted/40 rounded-lg p-2 text-xs` con lista.
 
-### Nuova tabella `daily_priorities`
-Migration:
-```
-id uuid pk, user_id uuid, date date, content text, created_at, updated_at
-UNIQUE (user_id, date)
-```
-- GRANT su `authenticated` + `service_role`.
-- RLS: policy `auth.uid() = user_id` per SELECT/INSERT/UPDATE/DELETE.
-
-### Modifica `src/pages/app/Agenda.tsx`
-- Stato `dailyPriority: string` + `prioritySaving: boolean`.
-- `useEffect` su `selectedDate` → fetch `daily_priorities` per quella data.
-- Funzione `savePriority()` che fa upsert su `(user_id, date)` al `onBlur` del textarea (o debounce 800ms), bloccata se `!canEdit`.
-- Inserire il nuovo blocco JSX **dopo** il calendario settimanale / header (riga ~415) e **prima** della lista appuntamenti (riga ~443), renderizzato solo quando `viewMode !== "month"`.
-- Stile coerente: card `glass rounded-2xl p-3 shadow-soft` con icona ⭐/Flag, label "Priorità della giornata · {data}" e `Textarea` compatto (min-h ~70px), placeholder "Scrivi le priorità per oggi…".
-
-Nessuna modifica ad altre pagine o alla logica appuntamenti.
+Nessun'altra modifica al form, alla logica di salvataggio, o al database.
