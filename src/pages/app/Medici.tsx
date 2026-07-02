@@ -59,6 +59,7 @@ export default function Medici() {
 
   // AI parsing state
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiMode, setAiMode] = useState<"create" | "edit">("create");
   const [aiText, setAiText] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [formDefaults, setFormDefaults] = useState<{name?: string; specialty?: string; paese?: string; microarea?: string; address?: string; phone?: string; office_hours?: Record<string, string>}>({});
@@ -131,18 +132,44 @@ export default function Medici() {
         body: { text: aiText },
       });
       if (error) throw error;
-      setFormDefaults({
-        name: data.name || "",
-        specialty: data.specialty || "MMG",
-        paese: data.paese || "",
-        microarea: data.microarea || "",
-        address: data.address || "",
-        phone: data.phone || "",
-        office_hours: data.office_hours || emptyHours(),
-      });
+      if (aiMode === "edit" && selected) {
+        // Merge: overwrite only the fields the AI actually found, keep the rest.
+        const merge: Partial<Doctor> = {};
+        if (data.name) merge.name = data.name;
+        if (data.specialty) merge.specialty = data.specialty;
+        if (data.paese) merge.paese = data.paese;
+        if (data.microarea) merge.microarea = data.microarea;
+        if (data.address) merge.address = data.address;
+        if (data.phone) merge.phone = data.phone;
+        if (data.office_hours && Object.values(data.office_hours).some((v: unknown) => v)) {
+          merge.office_hours = { ...emptyHours(), ...data.office_hours };
+        }
+        setEditData({
+          name: selected.name,
+          specialty: selected.specialty,
+          paese: selected.paese,
+          microarea: selected.microarea,
+          address: selected.address,
+          phone: selected.phone,
+          birth_year: selected.birth_year,
+          office_hours: selected.office_hours,
+          ...merge,
+        });
+        setEditing(true);
+      } else {
+        setFormDefaults({
+          name: data.name || "",
+          specialty: data.specialty || "MMG",
+          paese: data.paese || "",
+          microarea: data.microarea || "",
+          address: data.address || "",
+          phone: data.phone || "",
+          office_hours: data.office_hours || emptyHours(),
+        });
+      }
       setAiOpen(false);
       setAiText("");
-      toast.success("Dati compilati dall'AI!");
+      toast.success(aiMode === "edit" ? "Campi aggiornati dall'AI — rivedi e salva" : "Dati compilati dall'AI!");
     } catch (e: any) {
       toast.error(e?.message || "Errore nell'analisi AI");
     } finally {
@@ -230,7 +257,7 @@ export default function Medici() {
             <DialogHeader>
               <div className="flex items-center justify-between">
                 <DialogTitle>Nuovo Medico</DialogTitle>
-                <Button type="button" size="sm" variant="outline" className="rounded-xl gap-1.5 text-xs h-8 px-3" onClick={() => setAiOpen(true)}>
+                <Button type="button" size="sm" variant="outline" className="rounded-xl gap-1.5 text-xs h-8 px-3" onClick={() => { setAiMode("create"); setAiOpen(true); }}>
                   <Sparkles className="h-3.5 w-3.5" /> AI
                 </Button>
               </div>
@@ -274,8 +301,12 @@ export default function Medici() {
         {/* AI Dialog */}
         <Dialog open={aiOpen} onOpenChange={setAiOpen}>
           <DialogContent className="rounded-3xl">
-            <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> Compila con AI</DialogTitle></DialogHeader>
-            <p className="text-sm text-muted-foreground">Incolla le informazioni del medico (da sito ASL, rubrica, ecc.) e l'AI compilerà automaticamente i campi.</p>
+            <DialogHeader><DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4" /> {aiMode === "edit" ? "Aggiorna con AI" : "Compila con AI"}</DialogTitle></DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              {aiMode === "edit"
+                ? "Incolla le nuove informazioni: l'AI aggiornerà i campi trovati del medico. Rivedi prima di salvare."
+                : "Incolla le informazioni del medico (da sito ASL, rubrica, ecc.) e l'AI compilerà automaticamente i campi."}
+            </p>
             <Textarea
               value={aiText}
               onChange={e => setAiText(e.target.value)}
@@ -283,7 +314,7 @@ export default function Medici() {
               placeholder={"Cognome: ROSSI\nNome: MARIO\nTipo Medico: GENERICO\nIndirizzo: VIA ROMA 12, MILANO\nTelefono: 3201234567\nOrario:\nLunedi: 09:00 - 12:00\n..."}
             />
             <Button onClick={parseWithAI} disabled={aiLoading || !aiText.trim()} className="w-full rounded-xl gap-2">
-              {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analisi in corso...</> : <><Sparkles className="h-4 w-4" /> Compila campi</>}
+              {aiLoading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analisi in corso...</> : <><Sparkles className="h-4 w-4" /> {aiMode === "edit" ? "Aggiorna campi" : "Compila campi"}</>}
             </Button>
           </DialogContent>
         </Dialog>
@@ -352,7 +383,10 @@ export default function Medici() {
               <SheetHeader className="flex flex-row items-center justify-between">
                 <SheetTitle className="text-left">{selected.name}</SheetTitle>
                 {!editing ? (
-                  <Button size="icon" variant="ghost" onClick={startEdit} className="rounded-full h-8 w-8"><Pencil className="h-4 w-4" /></Button>
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="outline" onClick={() => { setAiMode("edit"); setAiOpen(true); }} className="rounded-full h-8 gap-1 px-3 text-xs"><Sparkles className="h-3.5 w-3.5" /> AI</Button>
+                    <Button size="icon" variant="ghost" onClick={startEdit} className="rounded-full h-8 w-8"><Pencil className="h-4 w-4" /></Button>
+                  </div>
                 ) : (
                   <div className="flex gap-1">
                     <Button size="icon" variant="ghost" onClick={cancelEdit} className="rounded-full h-8 w-8"><X className="h-4 w-4" /></Button>
