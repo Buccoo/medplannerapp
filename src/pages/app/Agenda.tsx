@@ -380,6 +380,43 @@ export default function Agenda() {
                     </div>
                   );
                 })()}
+                {(() => {
+                  if (!selectedDoctorName) return null;
+                  const doc = doctors.find(d => d.name === selectedDoctorName);
+                  if (!doc?.office_hours) return null;
+                  const dayName = dayNameMap[selectedDate.getDay()];
+                  const hours = doc.office_hours[dayName];
+                  if (!hours) return null;
+                  const m = String(hours).match(/(\d{1,2}[:.]\d{2})\s*[-–]\s*(\d{1,2}[:.]\d{2})/);
+                  if (!m) return null;
+                  const start = m[1].replace(".", ":").padStart(5, "0");
+                  const end = m[2].replace(".", ":").padStart(5, "0");
+                  const slotApps = appointments
+                    .filter(a => isSameDay(a.date, selectedDate) && a.time >= start && a.time <= end)
+                    .sort((a, b) => a.time.localeCompare(b.time));
+                  return (
+                    <div className="mt-1.5 rounded-xl bg-muted/50 border border-border p-2 text-xs">
+                      <div className="font-medium mb-1 text-muted-foreground">
+                        Appuntamenti in questa fascia ({start}–{end})
+                      </div>
+                      {slotApps.length === 0 ? (
+                        <div className="text-success">Nessun appuntamento — slot liberi</div>
+                      ) : (
+                        <ul className="space-y-1">
+                          {slotApps.map(a => (
+                            <li key={a.id} className="flex items-center gap-2">
+                              <span className="font-mono tabular-nums w-10">{a.time}</span>
+                              <span className="flex-1 truncate">{a.name}</span>
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusColors[a.status]}`}>
+                                {statusLabels[a.status]}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="space-y-1.5"><Label>Orario</Label><Input name="time" type="time" required className="rounded-xl" /></div>
               <div className="space-y-1.5"><Label>Telefono</Label><Input name="phone" type="tel" className="rounded-xl" /></div>
