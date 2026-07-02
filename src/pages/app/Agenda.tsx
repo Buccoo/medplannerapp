@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
   FileSpreadsheet, Check, CalendarDays, CalendarRange, Calendar as CalendarIcon,
-  X, Search, Upload, Trash2, Flag
+  X, Search, Upload, Trash2, Flag, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -30,10 +30,13 @@ const dayNameMap: Record<number, string> = {
   0: "Domenica", 1: "Lunedì", 2: "Martedì", 3: "Mercoledì",
   4: "Giovedì", 5: "Venerdì", 6: "Sabato",
 };
-import type { Json } from "@/integrations/supabase/types";
+import { useNavigate } from "react-router-dom";
+import type { Json, Database } from "@/integrations/supabase/types";
 
 type AppointmentStatus = "programmato" | "confermato" | "completato";
 type BookingSource = "Ambulatorio" | "WA" | "MioDottore";
+type DoctorRow = Database["public"]["Tables"]["doctors"]["Row"];
+const scheduleDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
 
 type Appointment = {
   id: string;
@@ -73,7 +76,10 @@ const statusLabels: Record<AppointmentStatus, string> = {
 export default function Agenda() {
   const { canEdit } = useSubscription();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(today);
+  const [docCard, setDocCard] = useState<DoctorRow | null>(null);
+  const [docLoading, setDocLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [addOpen, setAddOpen] = useState(false);
@@ -312,6 +318,20 @@ export default function Agenda() {
 
   const openMaps = (address: string) => window.open(`https://maps.apple.com/?q=${encodeURIComponent(address)}`, "_blank");
   const callPhone = (phone: string) => window.open(`tel:${phone}`);
+
+  const openDoctorCard = async (name: string) => {
+    if (!user || docLoading) return;
+    setDocLoading(true);
+    const { data, error } = await supabase
+      .from("doctors")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("name", name)
+      .limit(1);
+    setDocLoading(false);
+    if (error || !data || data.length === 0) { toast.error("Scheda medico non trovata"); return; }
+    setDocCard(data[0]);
+  };
 
   const toggleProduct = (app: Appointment, productName: string) => {
     const exists = app.products.find(p => p.name === productName);
@@ -685,7 +705,22 @@ export default function Agenda() {
         <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
           {detailApp && (
             <div className="space-y-4">
-              <SheetHeader><SheetTitle className="text-left">{detailApp.name}</SheetTitle></SheetHeader>
+              <SheetHeader>
+                <SheetTitle className="text-left">
+                  {detailApp.type === "medico" ? (
+                    <button
+                      type="button"
+                      onClick={() => openDoctorCard(detailApp.name)}
+                      className="text-left flex items-center gap-1.5 underline decoration-dotted underline-offset-4"
+                    >
+                      {detailApp.name}
+                      {docLoading
+                        ? <span className="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full shrink-0" />
+                        : <User className="h-4 w-4 text-muted-foreground shrink-0" />}
+                    </button>
+                  ) : detailApp.name}
+                </SheetTitle>
+              </SheetHeader>
 
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className={`border-0 ${statusColors[detailApp.status]}`}>{statusLabels[detailApp.status]}</Badge>
@@ -762,6 +797,93 @@ export default function Agenda() {
               </AlertDialog>
             </div>
           )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Doctor card (scheda medico) */}
+      <Sheet open={!!docCard} onOpenChange={(open) => { if (!open) setDocCard(null); }}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto pb-8">
+          {docCard && (() => {
+            const hours = (docCard.office_hours as Record<string, string> | null) || {};
+            return (
+              <div className="space-y-5">
+                <SheetHeader><SheetTitle className="text-left">{docCard.name}</SheetTitle></SheetHeader>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full font-medium">{docCard.specialty}</span>
+                  {docCard.paese && <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{docCard.paese}</span>}
+                  {docCard.microarea && <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">{docCard.microarea}</span>}
+                  {docCard.k_client && <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>}
+                  {docCard.c_client && <span className="text-xs bg-success/10 text-success px-2.5 py-1 rounded-full font-medium">C-Client</span>}
+                  {docCard.target_class && <span className="text-xs bg-secondary px-2.5 py-1 rounded-full">Target {docCard.target_class}</span>}
+                </div>
+
+                {docCard.phone && (
+                  <button onClick={() => callPhone(docCard.phone!)} className="flex items-center gap-3 w-full text-left">
+                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
+                    <span className="text-sm text-primary">{docCard.phone}</span>
+                  </button>
+                )}
+
+                {docCard.address && (
+                  <button onClick={() => openMaps(docCard.address!)} className="flex items-center gap-3 w-full text-left">
+                    <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="h-4 w-4 text-primary" /></div>
+                    <span className="text-sm text-primary underline">{docCard.address}</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><CalendarDays className="h-4 w-4 text-muted-foreground" /></div>
+                  <span className="text-sm"><span className="text-muted-foreground">Visite effettuate:</span> {docCard.visits}</span>
+                </div>
+
+                {docCard.birth_year && (
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center"><CalendarIcon className="h-4 w-4 text-muted-foreground" /></div>
+                    <span className="text-sm"><span className="text-muted-foreground">Anno di nascita:</span> {docCard.birth_year}</span>
+                  </div>
+                )}
+
+                {scheduleDays.some(d => hours[d]) && (
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Orari ambulatoriali
+                    </Label>
+                    <div className="bg-secondary/50 rounded-xl p-3 space-y-1.5">
+                      {scheduleDays.map(day => hours[day] ? (
+                        <div key={day} className="flex items-center gap-3 text-xs">
+                          <span className="font-medium w-20 shrink-0">{day}</span>
+                          <span>{hours[day]}</span>
+                        </div>
+                      ) : null)}
+                    </div>
+                  </div>
+                )}
+
+                {docCard.last_visit_date && (
+                  <div className="bg-secondary/50 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Ultima visita: {docCard.last_visit_date}</p>
+                    <p className="text-sm">{docCard.last_visit_notes || "—"}</p>
+                  </div>
+                )}
+
+                {docCard.current_visit_notes && (
+                  <div className="bg-secondary/50 rounded-xl p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Note</p>
+                    <p className="text-sm whitespace-pre-wrap">{docCard.current_visit_notes}</p>
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full rounded-xl gap-2"
+                  onClick={() => navigate("/app/medici", { state: { openDoctorName: docCard.name } })}
+                >
+                  <Pencil className="h-4 w-4" /> Apri in Medici
+                </Button>
+              </div>
+            );
+          })()}
         </SheetContent>
       </Sheet>
     </div>

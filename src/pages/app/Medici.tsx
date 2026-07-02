@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,8 @@ type Doctor = {
 export default function Medici() {
   const { canEdit } = useSubscription();
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterSpec, setFilterSpec] = useState("all");
   const [filterMicroarea, setFilterMicroarea] = useState("all");
@@ -94,6 +97,15 @@ export default function Medici() {
   };
 
   useEffect(() => { fetchDoctors(); fetchMicroareaTowns(); }, [user]);
+
+  // Open a doctor card automatically when navigated here from another page
+  useEffect(() => {
+    const name = (location.state as { openDoctorName?: string } | null)?.openDoctorName;
+    if (!name || doctors.length === 0) return;
+    const doc = doctors.find(d => d.name === name);
+    if (doc) setSelected(doc);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [doctors, location.state]);
 
   const uniquePaesi = useMemo(() => {
     if (filterMicroarea !== "all" && microareaTownsMap[filterMicroarea]) {
