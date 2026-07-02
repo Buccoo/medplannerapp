@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
   FileSpreadsheet, Check, CalendarDays, CalendarRange, Calendar as CalendarIcon,
-  X, Upload, Trash2, Flag
+  X, Search, Upload, Trash2, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -80,6 +80,7 @@ export default function Agenda() {
   const [editingTime, setEditingTime] = useState(false);
   const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null; birth_year?: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
@@ -220,6 +221,22 @@ export default function Agenda() {
     appointments.filter(a => isSameDay(a.date, date)).sort((a, b) => a.time.localeCompare(b.time));
 
   const todayAppointments = getAppointmentsForDate(selectedDate);
+
+  const searching = search.trim().length > 0;
+  const searchResults = useMemo(() => {
+    if (!searching) return [];
+    const norm = (s: string) => s.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toLowerCase();
+    const q = norm(search.trim());
+    return appointments
+      .filter(a =>
+        norm(a.name).includes(q) ||
+        norm(a.paese).includes(q) ||
+        norm(a.microarea).includes(q) ||
+        norm(a.address).includes(q)
+      )
+      .sort((a, b) => a.date.getTime() - b.date.getTime() || a.time.localeCompare(b.time));
+  }, [appointments, search, searching]);
+  const listApps = searching ? searchResults : todayAppointments;
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -446,7 +463,29 @@ export default function Agenda() {
         </Dialog>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mb-3">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cerca per nome, paese, microarea…"
+          className="rounded-xl pl-9 pr-9"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            aria-label="Pulisci ricerca"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* View mode toggle */}
+      {!searching && (
       <div className="flex gap-1 mb-3 bg-secondary rounded-xl p-1">
         {([
           { key: "day" as ViewMode, icon: CalendarDays, label: "Giorno" },
@@ -459,16 +498,19 @@ export default function Agenda() {
           </button>
         ))}
       </div>
+      )}
 
       {/* Date navigation */}
+      {!searching && (
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => navigateDate(-1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center"><ChevronLeft className="h-4 w-4" /></button>
         <button onClick={() => setSelectedDate(today)} className="text-sm font-semibold capitalize">{headerTitle}</button>
         <button onClick={() => navigateDate(1)} className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center"><ChevronRight className="h-4 w-4" /></button>
       </div>
+      )}
 
       {/* WEEK VIEW */}
-      {viewMode === "week" && (
+      {!searching && viewMode === "week" && (
         <div className="flex gap-1.5 mb-4">
           {weekDays.map(day => {
             const isSelected = isSameDay(day, selectedDate);
@@ -487,7 +529,7 @@ export default function Agenda() {
       )}
 
       {/* MONTH VIEW */}
-      {viewMode === "month" && (
+      {!searching && viewMode === "month" && (
         <div className="mb-4">
           <div className="grid grid-cols-7 gap-0.5 mb-1">
             {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
@@ -514,7 +556,7 @@ export default function Agenda() {
 
       {/* Appointments list */}
       <div className="space-y-2.5">
-        {viewMode !== "month" && (
+        {!searching && viewMode !== "month" && (
           <div className="glass rounded-2xl p-3 shadow-soft mb-1">
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-2">
@@ -551,10 +593,13 @@ export default function Agenda() {
             />
           </div>
         )}
-        {todayAppointments.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">Nessun appuntamento</div>
+        {searching && (
+          <p className="text-xs text-muted-foreground px-1 mb-1">{searchResults.length} risultat{searchResults.length === 1 ? "o" : "i"}</p>
+        )}
+        {listApps.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">{searching ? "Nessun appuntamento trovato" : "Nessun appuntamento"}</div>
         ) : (
-          todayAppointments.map((a, i) => (
+          listApps.map((a, i) => (
             <motion.div key={a.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
               onClick={() => setDetailApp(a)}
               className={`glass rounded-2xl p-4 shadow-soft flex items-center gap-3 cursor-pointer transition-opacity ${a.status === "completato" ? "opacity-60" : ""}`}>
@@ -579,6 +624,7 @@ export default function Agenda() {
                 )}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
+                {searching && <span className="text-[10px] font-medium text-primary capitalize">{format(a.date, "EEE d MMM", { locale: it })}</span>}
                 <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" />{a.time}</div>
                 <button onClick={(e) => { e.stopPropagation(); changeStatus(a); }}
                   className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[a.status]}`}>
