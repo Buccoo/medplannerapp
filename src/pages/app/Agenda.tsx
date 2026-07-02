@@ -16,12 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { stripDoctorTitle } from "@/lib/doctorName";
 import {
   format, addDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO
+  isSameDay, addMonths, subMonths, addWeeks, subWeeks, getDay, parseISO, startOfDay
 } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -81,6 +82,7 @@ export default function Agenda() {
   const [doctors, setDoctors] = useState<{ name: string; phone: string; address: string; paese: string; microarea: string; office_hours: Record<string, string> | null; birth_year?: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [includePast, setIncludePast] = useState(false);
   const [doctorSearch, setDoctorSearch] = useState("");
   const [showDoctorSuggestions, setShowDoctorSuggestions] = useState(false);
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
@@ -223,20 +225,30 @@ export default function Agenda() {
   const todayAppointments = getAppointmentsForDate(selectedDate);
 
   const searching = search.trim().length > 0;
-  const searchResults = useMemo(() => {
+  const todayStart = useMemo(() => startOfDay(today), []);
+  const searchMatches = useMemo(() => {
     if (!searching) return [];
     const norm = (s: string) => s.normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").toLowerCase();
     const q = norm(search.trim());
-    return appointments
-      .filter(a =>
-        norm(a.name).includes(q) ||
-        norm(a.paese).includes(q) ||
-        norm(a.microarea).includes(q) ||
-        norm(a.address).includes(q)
-      )
-      .sort((a, b) => a.date.getTime() - b.date.getTime() || a.time.localeCompare(b.time));
+    return appointments.filter(a =>
+      norm(a.name).includes(q) ||
+      norm(a.paese).includes(q) ||
+      norm(a.microarea).includes(q) ||
+      norm(a.address).includes(q)
+    );
   }, [appointments, search, searching]);
-  const listApps = searching ? searchResults : todayAppointments;
+  const futureResults = useMemo(
+    () => searchMatches
+      .filter(a => a.date >= todayStart)
+      .sort((a, b) => a.date.getTime() - b.date.getTime() || a.time.localeCompare(b.time)),
+    [searchMatches, todayStart]
+  );
+  const pastResults = useMemo(
+    () => searchMatches
+      .filter(a => a.date < todayStart)
+      .sort((a, b) => b.date.getTime() - a.date.getTime() || b.time.localeCompare(a.time)),
+    [searchMatches, todayStart]
+  );
 
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -316,6 +328,41 @@ export default function Agenda() {
     if (viewMode === "week") return `${format(weekDays[0], "d MMM", { locale: it })} - ${format(weekDays[6], "d MMM yyyy", { locale: it })}`;
     return format(selectedDate, "MMMM yyyy", { locale: it });
   }, [selectedDate, viewMode, weekDays]);
+
+  const renderAppointment = (a: Appointment, i: number) => (
+    <motion.div key={a.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 8) * 0.03 }}
+      onClick={() => setDetailApp(a)}
+      className={`glass rounded-2xl p-4 shadow-soft flex items-center gap-3 cursor-pointer transition-opacity ${a.status === "completato" ? "opacity-60" : ""}`}>
+      <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${a.type === "medico" ? "bg-primary/10" : "bg-success/10"}`}>
+        {a.type === "medico" ? <User className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-success" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>
+          {a.name}
+          {(() => { const doc = doctors.find(d => d.name === a.name); return doc?.birth_year ? <span className="text-[10px] text-muted-foreground ml-1">({doc.birth_year})</span> : null; })()}
+        </p>
+        <div className="flex items-center gap-2 mt-0.5">
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
+          <span className="text-[10px] text-muted-foreground">{a.paese}</span>
+          <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.booking_source}</span>
+        </div>
+        {a.address && (
+          <button onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
+            className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[180px] mt-0.5">
+            <MapPin className="h-2.5 w-2.5 shrink-0" />{a.address}
+          </button>
+        )}
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        {searching && <span className="text-[10px] font-medium text-primary capitalize">{format(a.date, "EEE d MMM", { locale: it })}</span>}
+        <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" />{a.time}</div>
+        <button onClick={(e) => { e.stopPropagation(); changeStatus(a); }}
+          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[a.status]}`}>
+          {statusLabels[a.status]}
+        </button>
+      </div>
+    </motion.div>
+  );
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>;
 
@@ -593,46 +640,43 @@ export default function Agenda() {
             />
           </div>
         )}
-        {searching && (
-          <p className="text-xs text-muted-foreground px-1 mb-1">{searchResults.length} risultat{searchResults.length === 1 ? "o" : "i"}</p>
-        )}
-        {listApps.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">{searching ? "Nessun appuntamento trovato" : "Nessun appuntamento"}</div>
-        ) : (
-          listApps.map((a, i) => (
-            <motion.div key={a.id} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }}
-              onClick={() => setDetailApp(a)}
-              className={`glass rounded-2xl p-4 shadow-soft flex items-center gap-3 cursor-pointer transition-opacity ${a.status === "completato" ? "opacity-60" : ""}`}>
-              <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${a.type === "medico" ? "bg-primary/10" : "bg-success/10"}`}>
-                {a.type === "medico" ? <User className="h-5 w-5 text-primary" /> : <Building2 className="h-5 w-5 text-success" />}
+        {searching ? (
+          <>
+            <label className="flex items-center gap-2 px-1 mb-1 text-xs text-muted-foreground cursor-pointer select-none">
+              <Checkbox checked={includePast} onCheckedChange={(v) => setIncludePast(v === true)} />
+              Anche passate
+            </label>
+            <div>
+              <div className="flex items-center justify-between px-1 mb-1.5 mt-1">
+                <span className="text-xs font-semibold">Future</span>
+                <span className="text-[10px] text-muted-foreground">{futureResults.length}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className={`font-medium truncate ${a.status === "completato" ? "line-through" : ""}`}>
-                  {a.name}
-                  {(() => { const doc = doctors.find(d => d.name === a.name); return doc?.birth_year ? <span className="text-[10px] text-muted-foreground ml-1">({doc.birth_year})</span> : null; })()}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
-                  <span className="text-[10px] text-muted-foreground">{a.paese}</span>
-                  <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.booking_source}</span>
+              {futureResults.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">Nessun appuntamento futuro</div>
+              ) : (
+                <div className="space-y-2.5">{futureResults.map(renderAppointment)}</div>
+              )}
+            </div>
+            {includePast && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between px-1 mb-1.5">
+                  <span className="text-xs font-semibold text-muted-foreground">Passate</span>
+                  <span className="text-[10px] text-muted-foreground">{pastResults.length}</span>
                 </div>
-                {a.address && (
-                  <button onClick={(e) => { e.stopPropagation(); openMaps(a.address); }}
-                    className="text-[10px] text-primary flex items-center gap-0.5 truncate max-w-[180px] mt-0.5">
-                    <MapPin className="h-2.5 w-2.5 shrink-0" />{a.address}
-                  </button>
+                {pastResults.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground text-sm">Nessun appuntamento passato</div>
+                ) : (
+                  <div className="space-y-2.5">{pastResults.map(renderAppointment)}</div>
                 )}
               </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                {searching && <span className="text-[10px] font-medium text-primary capitalize">{format(a.date, "EEE d MMM", { locale: it })}</span>}
-                <div className="flex items-center gap-1 text-sm text-muted-foreground"><Clock className="h-3.5 w-3.5" />{a.time}</div>
-                <button onClick={(e) => { e.stopPropagation(); changeStatus(a); }}
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColors[a.status]}`}>
-                  {statusLabels[a.status]}
-                </button>
-              </div>
-            </motion.div>
-          ))
+            )}
+          </>
+        ) : (
+          todayAppointments.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">Nessun appuntamento</div>
+          ) : (
+            todayAppointments.map(renderAppointment)
+          )
         )}
       </div>
 
