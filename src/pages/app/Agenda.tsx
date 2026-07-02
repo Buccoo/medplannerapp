@@ -94,6 +94,8 @@ export default function Agenda() {
   const [selectedDoctorName, setSelectedDoctorName] = useState("");
   const [selectedPaese, setSelectedPaese] = useState("");
   const [selectedMicroarea, setSelectedMicroarea] = useState("");
+  const [paeseAdding, setPaeseAdding] = useState(false);
+  const [newPaese, setNewPaese] = useState("");
   const [microareaTowns, setMicroareaTowns] = useState<Record<string, string[]>>({});
   const [dailyPriority, setDailyPriority] = useState("");
   const [priorityLoaded, setPriorityLoaded] = useState(false);
@@ -333,6 +335,49 @@ export default function Agenda() {
     setDocCard(data[0]);
   };
 
+  const quickAddDoctor = async () => {
+    const name = doctorSearch.trim();
+    if (!name || !user) return;
+    const existing = doctors.find(d => d.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      setSelectedDoctorName(existing.name);
+      setDoctorSearch(existing.name);
+      setShowDoctorSuggestions(false);
+      return;
+    }
+    const { error } = await supabase.from("doctors").insert({
+      user_id: user.id,
+      name,
+      specialty: "MMG",
+      paese: selectedPaese || "",
+      microarea: selectedMicroarea || "",
+    });
+    if (error) { toast.error("Errore nell'aggiunta del medico"); return; }
+    await fetchDoctors();
+    setSelectedDoctorName(name);
+    setDoctorSearch(name);
+    setShowDoctorSuggestions(false);
+    toast.success("Medico aggiunto");
+  };
+
+  const savePaese = async () => {
+    const town = newPaese.trim();
+    if (!town || !user) return;
+    if (!selectedMicroarea) { toast.error("Seleziona prima una microarea"); return; }
+    const existing = (microareaTowns[selectedMicroarea] || []).find(t => t.toLowerCase() === town.toLowerCase());
+    if (!existing) {
+      const { error } = await supabase.from("microarea_towns").insert({ user_id: user.id, microarea: selectedMicroarea, town });
+      if (error) { toast.error("Errore nell'aggiunta del paese"); return; }
+      await fetchMicroareaTowns();
+      toast.success(`${town} aggiunto a ${selectedMicroarea}`);
+    }
+    setSelectedPaese(existing || town);
+    setSelectedDoctorName("");
+    setDoctorSearch("");
+    setPaeseAdding(false);
+    setNewPaese("");
+  };
+
   const toggleProduct = (app: Appointment, productName: string) => {
     const exists = app.products.find(p => p.name === productName);
     const newProducts = exists ? app.products.filter(p => p.name !== productName) : [...app.products, { name: productName, qty: 1 }];
@@ -390,7 +435,7 @@ export default function Agenda() {
     <div className="px-4 pt-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Agenda</h1>
-        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); setSelectedMicroarea(""); } setAddOpen(v); }}>
+        <Dialog open={addOpen} onOpenChange={(v) => { if (v && !canEdit) { toast.error("Abbonamento scaduto. Rinnova per aggiungere dati."); return; } if (!v) { setDoctorSearch(""); setSelectedDoctorName(""); setShowDoctorSuggestions(false); setSelectedPaese(""); setSelectedMicroarea(""); setPaeseAdding(false); setNewPaese(""); } setAddOpen(v); }}>
           <DialogTrigger asChild>
             <Button size="icon" className="rounded-full shadow-glow h-10 w-10"><Plus className="h-5 w-5" /></Button>
           </DialogTrigger>
@@ -409,15 +454,30 @@ export default function Agenda() {
               </div>
               <div className="space-y-1.5">
                 <Label>Paese</Label>
-                <Select value={selectedPaese || "__all__"} onValueChange={(v) => { setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
+                <Select value={selectedPaese || "__all__"} onValueChange={(v) => { if (v === "__add__") { setPaeseAdding(true); return; } setSelectedPaese(v === "__all__" ? "" : v); setDoctorSearch(""); setSelectedDoctorName(""); }}>
                   <SelectTrigger className="rounded-xl"><SelectValue placeholder="Tutti i paesi" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">Tutti i paesi</SelectItem>
                     {uniquePaesi.map(p => (
                       <SelectItem key={p} value={p}>{p}</SelectItem>
                     ))}
+                    <SelectItem value="__add__" className="text-primary">➕ Aggiungi nuovo paese</SelectItem>
                   </SelectContent>
                 </Select>
+                {paeseAdding && (
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Input
+                      value={newPaese}
+                      onChange={(e) => setNewPaese(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); savePaese(); } }}
+                      placeholder={selectedMicroarea ? `Nuovo paese in ${selectedMicroarea}` : "Seleziona prima una microarea"}
+                      className="rounded-xl"
+                      autoFocus
+                    />
+                    <Button type="button" size="sm" className="rounded-xl shrink-0" onClick={savePaese} disabled={!newPaese.trim() || !selectedMicroarea}>Salva</Button>
+                    <Button type="button" size="icon" variant="ghost" className="rounded-xl shrink-0 h-9 w-9" onClick={() => { setPaeseAdding(false); setNewPaese(""); }}><X className="h-4 w-4" /></Button>
+                  </div>
+                )}
               </div>
               <div className="space-y-1.5 relative">
                 <Label>Medico</Label>
@@ -431,24 +491,29 @@ export default function Agenda() {
                   className="rounded-xl"
                   autoComplete="off"
                 />
-                {showDoctorSuggestions && filteredDoctors.length > 0 && !selectedDoctorName && (
+                {showDoctorSuggestions && !selectedDoctorName && (filteredDoctors.length > 0 || doctorSearch.trim()) && (
                   <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
                     {filteredDoctors.map(d => (
                       <button
                         key={d.name}
                         type="button"
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors first:rounded-t-xl last:rounded-b-xl"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent transition-colors first:rounded-t-xl"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => { setDoctorSearch(d.name); setSelectedDoctorName(d.name); setShowDoctorSuggestions(false); }}
                       >
                         {d.name}
                       </button>
                     ))}
-                  </div>
-                )}
-                {showDoctorSuggestions && doctorSearch && filteredDoctors.length === 0 && !selectedDoctorName && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-border rounded-xl shadow-lg px-3 py-2 text-sm text-muted-foreground">
-                    Nessun medico trovato
+                    {doctorSearch.trim() && (
+                      <button
+                        type="button"
+                        className={`w-full text-left px-3 py-2 text-sm text-primary font-medium hover:bg-accent transition-colors flex items-center gap-1.5 first:rounded-t-xl last:rounded-b-xl ${filteredDoctors.length > 0 ? "border-t border-border" : ""}`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={quickAddDoctor}
+                      >
+                        <Plus className="h-3.5 w-3.5 shrink-0" /> Aggiungi «{doctorSearch.trim()}»
+                      </button>
+                    )}
                   </div>
                 )}
                 {(() => {
