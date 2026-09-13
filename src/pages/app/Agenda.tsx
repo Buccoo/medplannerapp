@@ -6,8 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, Clock, User, Building2, Phone, MapPin, ChevronLeft, ChevronRight,
   FileSpreadsheet, Check, CalendarDays, CalendarRange, Calendar as CalendarIcon,
-  X, Search, Upload, Trash2, Flag, Pencil
+  X, Search, Upload, Trash2, Flag, Pencil, MessageCircle
 } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -808,10 +809,15 @@ export default function Agenda() {
               </div>
 
               {detailApp.phone && (
-                <button onClick={() => callPhone(detailApp.phone)} className="flex items-center gap-3 w-full text-left">
-                  <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
-                  <span className="text-sm text-primary">{detailApp.phone}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => callPhone(detailApp.phone)} className="flex items-center gap-3 flex-1 text-left">
+                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
+                    <span className="text-sm text-primary">{detailApp.phone}</span>
+                  </button>
+                  <button onClick={() => openWhatsApp(detailApp.phone)} aria-label="Apri chat WhatsApp" className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                    <MessageCircle className="h-4 w-4 text-success" />
+                  </button>
+                </div>
               )}
 
               {detailApp.address && (
@@ -884,10 +890,15 @@ export default function Agenda() {
                 </div>
 
                 {docCard.phone && (
-                  <button onClick={() => callPhone(docCard.phone!)} className="flex items-center gap-3 w-full text-left">
-                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
-                    <span className="text-sm text-primary">{docCard.phone}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => callPhone(docCard.phone!)} className="flex items-center gap-3 flex-1 text-left">
+                      <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
+                      <span className="text-sm text-primary">{docCard.phone}</span>
+                    </button>
+                    <button onClick={() => openWhatsApp(docCard.phone!)} aria-label="Apri chat WhatsApp" className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                      <MessageCircle className="h-4 w-4 text-success" />
+                    </button>
+                  </div>
                 )}
 
                 {docCard.address && (

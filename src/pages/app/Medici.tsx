@@ -4,7 +4,8 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { Search, Plus, Phone, MapPin, Clock, Calendar, CalendarDays, Trash2, Pencil, Check, X, Sparkles, Loader2 } from "lucide-react";
+import { Search, Plus, Phone, MapPin, Clock, Calendar, CalendarDays, Trash2, Pencil, Check, X, Sparkles, Loader2, MessageCircle } from "lucide-react";
+import { openWhatsApp } from "@/lib/whatsapp";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -426,10 +427,17 @@ export default function Medici() {
                     {selected.k_client && <span className="text-xs bg-warning/10 text-warning px-2.5 py-1 rounded-full font-medium">K-Client</span>}
                     {selected.c_client && <span className="text-xs bg-success/10 text-success px-2.5 py-1 rounded-full font-medium">C-Client</span>}
                   </div>
-                  <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 w-full text-left">
-                    <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
-                    <span className="text-sm text-primary">{selected.phone}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => window.open(`tel:${selected.phone}`)} className="flex items-center gap-3 flex-1 text-left">
+                      <div className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center"><Phone className="h-4 w-4 text-success" /></div>
+                      <span className="text-sm text-primary">{selected.phone}</span>
+                    </button>
+                    {selected.phone && (
+                      <button onClick={() => openWhatsApp(selected.phone)} aria-label="Apri chat WhatsApp" className="h-9 w-9 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+                        <MessageCircle className="h-4 w-4 text-success" />
+                      </button>
+                    )}
+                  </div>
                   {selected.address && (
                     <button onClick={() => openMaps(selected.address)} className="flex items-center gap-3 w-full text-left">
                       <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center"><MapPin className="h-4 w-4 text-primary" /></div>
