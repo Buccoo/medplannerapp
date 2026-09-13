@@ -1,18 +1,32 @@
 ## Obiettivo
-Nel dialog "Nuovo Appuntamento", subito sotto il badge con l'orario ambulatoriale del medico, mostrare gli appuntamenti già fissati per quel giorno che rientrano nella fascia oraria dell'ambulatorio, così da vedere a colpo d'occhio gli slot liberi.
+Aggiungere un bottone WhatsApp (link `wa.me`) per aprire velocemente la chat con un medico o una farmacia, sia nella lista Medici/Farmacie sia negli appuntamenti in Agenda.
 
 ## Comportamento
-- Compare solo quando: medico selezionato + il medico ha un orario ambulatoriale per il giorno selezionato.
-- Mostra elenco compatto degli appuntamenti dell'utente per quella data il cui orario cade nell'intervallo (es. 09:00–11:00) dell'ambulatorio, ordinati per orario.
-- Ogni riga: orario · nome (medico/farmacia) · badge stato.
-- Se nessun appuntamento in quella fascia: messaggio "Nessun appuntamento in questa fascia — slot liberi".
-- Non blocca l'inserimento (è solo informativo).
+- Il bottone compare solo se il contatto ha un numero di telefono salvato.
+- Il numero viene normalizzato per wa.me: rimossi spazi, trattini, parentesi e il `+` iniziale; se manca il prefisso internazionale (numero italiano a 10 cifre che inizia con 0 oppure con 3), viene anteposto `39`.
+- Click → apre `https://wa.me/<numero>` in nuova scheda/app WhatsApp.
+- Icona: `MessageCircle` di lucide (verde), affiancata al bottone telefono già esistente.
 
-## Dettagli tecnici (src/pages/app/Agenda.tsx)
-- Riutilizzo lo stato `appointments` già caricato.
-- Parsing orario ambulatorio: split su `-` → `startHH:MM`, `endHH:MM`; confronto stringhe `HH:MM` (già formato usato).
-- `const slotApps = appointments.filter(a => isSameDay(a.date, selectedDate) && a.time >= start && a.time <= end).sort((a,b) => a.time.localeCompare(b.time))`.
-- Blocco JSX inserito subito dopo l'attuale badge "Ambulatorio {giorno}: {orario}" nel dialog.
-- Stile: piccola card `bg-muted/40 rounded-lg p-2 text-xs` con lista.
+## Posizioni
+1. **Medici** (`src/pages/app/Medici.tsx`)
+   - Dialog dettaglio medico: bottone WhatsApp accanto alla riga telefono.
+2. **Farmacie** (`src/pages/app/Farmacie.tsx`)
+   - Dialog dettaglio farmacia: bottone WhatsApp accanto alla riga telefono.
+3. **Agenda** (`src/pages/app/Agenda.tsx`)
+   - Dialog dettaglio appuntamento: bottone WhatsApp accanto alla riga telefono (funziona sia per appuntamenti medico che farmacia).
+   - Card medico nel dialog: bottone WhatsApp accanto al telefono.
 
-Nessun'altra modifica al form, alla logica di salvataggio, o al database.
+## Dettagli tecnici
+- Helper condiviso `src/lib/whatsapp.ts`:
+  ```ts
+  export const whatsappUrl = (phone: string): string | null => {
+    let n = (phone || "").replace(/[^\d+]/g, "").replace(/^\+/, "");
+    if (!n) return null;
+    if (n.startsWith("0") || (n.length === 10 && n.startsWith("3"))) n = "39" + n;
+    return `https://wa.me/${n}`;
+  };
+  ```
+- In ogni punto: `const wa = whatsappUrl(phone); if (wa) window.open(wa, "_blank")`.
+- Bottone: `Button` ghost/icona verde (`text-green-600`) con `MessageCircle`, stesso stile delle azioni telefono esistenti.
+
+Nessuna modifica al database o alla logica di salvataggio.
