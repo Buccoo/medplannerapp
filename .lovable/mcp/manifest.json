@@ -1,0 +1,192 @@
+{
+  "version": 1,
+  "sdk_version": "2.1.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://dxyogaxdzrdxvprnojny.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "medplanner-pro",
+      "version": "0.1.0",
+      "title": "MedPlanner Pro"
+    },
+    "tools": [
+      {
+        "name": "read_agenda",
+        "title": "Leggi agenda",
+        "description": "Elenca gli appuntamenti dell'utente in un intervallo di date (formato AAAA-MM-GG).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "description": "Data iniziale inclusa, formato AAAA-MM-GG."
+            },
+            "to": {
+              "type": "string",
+              "description": "Data finale inclusa, formato AAAA-MM-GG."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_doctors",
+        "title": "Cerca medici",
+        "description": "Cerca i medici dello schedario per nome, specialità o microarea.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Testo da cercare nel nome del medico."
+            },
+            "microarea": {
+              "type": "string",
+              "description": "Codice microarea, ad esempio LE07."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Numero massimo di risultati, massimo 100."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "search_pharmacies",
+        "title": "Cerca farmacie",
+        "description": "Cerca le farmacie salvate per nome o microarea.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "description": "Testo da cercare nel nome della farmacia."
+            },
+            "microarea": {
+              "type": "string",
+              "description": "Codice microarea, ad esempio LE07."
+            },
+            "limit": {
+              "type": "integer",
+              "description": "Numero massimo di risultati, massimo 100."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "read_daily_priorities",
+        "title": "Leggi priorità della giornata",
+        "description": "Legge le priorità annotate per una data specifica (formato AAAA-MM-GG).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Data della giornata, formato AAAA-MM-GG."
+            }
+          },
+          "required": [
+            "date"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_appointment",
+        "title": "Crea appuntamento",
+        "description": "Crea un nuovo appuntamento in agenda per l'utente collegato, con stato di pianificazione 'proposto'.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "date": {
+              "type": "string",
+              "description": "Data dell'appuntamento, formato AAAA-MM-GG."
+            },
+            "time": {
+              "type": "string",
+              "description": "Orario dell'appuntamento, formato HH:MM."
+            },
+            "name": {
+              "type": "string",
+              "description": "Nome del medico o della farmacia."
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "medico",
+                "farmacia"
+              ],
+              "description": "Tipo di visita."
+            },
+            "address": {
+              "type": "string",
+              "description": "Indirizzo o struttura."
+            },
+            "paese": {
+              "type": "string",
+              "description": "Paese o comune."
+            },
+            "microarea": {
+              "type": "string",
+              "description": "Codice microarea, ad esempio LE07."
+            },
+            "notes": {
+              "type": "string",
+              "description": "Note sulla visita."
+            }
+          },
+          "required": [
+            "date",
+            "time",
+            "name",
+            "type"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
