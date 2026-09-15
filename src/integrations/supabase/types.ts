@@ -14,24 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
+      appointment_revisions: {
+        Row: {
+          action: string
+          actor_id: string | null
+          appointment_id: string
+          change_set_id: string | null
+          created_at: string
+          id: number
+          new_values: Json | null
+          old_values: Json | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          appointment_id: string
+          change_set_id?: string | null
+          created_at?: string
+          id?: never
+          new_values?: Json | null
+          old_values?: Json | null
+          source: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          appointment_id?: string
+          change_set_id?: string | null
+          created_at?: string
+          id?: never
+          new_values?: Json | null
+          old_values?: Json | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_revisions_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           address: string | null
           booking_source: string | null
+          change_set_id: string | null
           created_at: string
           current_visit_notes: string | null
           date: string
+          delete_reason: string | null
+          deleted_at: string | null
+          deleted_by: string | null
+          doctor_id: string | null
           id: string
+          is_locked: boolean
           last_visit_date: string | null
           last_visit_notes: string | null
+          locked_reason: string | null
           microarea: string | null
           name: string
           next_appointment_draft: string | null
           order_file: string | null
           paese: string | null
           phone: string | null
+          planning_status: string
           products: Json | null
           secretary_notes: string | null
+          source: string
           status: string
           time: string
           type: string
@@ -41,20 +97,29 @@ export type Database = {
         Insert: {
           address?: string | null
           booking_source?: string | null
+          change_set_id?: string | null
           created_at?: string
           current_visit_notes?: string | null
           date: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          doctor_id?: string | null
           id?: string
+          is_locked?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
+          locked_reason?: string | null
           microarea?: string | null
           name: string
           next_appointment_draft?: string | null
           order_file?: string | null
           paese?: string | null
           phone?: string | null
+          planning_status?: string
           products?: Json | null
           secretary_notes?: string | null
+          source?: string
           status?: string
           time: string
           type?: string
@@ -64,27 +129,51 @@ export type Database = {
         Update: {
           address?: string | null
           booking_source?: string | null
+          change_set_id?: string | null
           created_at?: string
           current_visit_notes?: string | null
           date?: string
+          delete_reason?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
+          doctor_id?: string | null
           id?: string
+          is_locked?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
+          locked_reason?: string | null
           microarea?: string | null
           name?: string
           next_appointment_draft?: string | null
           order_file?: string | null
           paese?: string | null
           phone?: string | null
+          planning_status?: string
           products?: Json | null
           secretary_notes?: string | null
+          source?: string
           status?: string
           time?: string
           type?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "appointments_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       archive_files: {
         Row: {
@@ -165,6 +254,158 @@ export type Database = {
           },
         ]
       }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          change_set_id: string | null
+          created_at: string
+          diff: Json
+          entity_id: string | null
+          entity_type: string
+          id: number
+          snapshot: Json | null
+          source: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          change_set_id?: string | null
+          created_at?: string
+          diff?: Json
+          entity_id?: string | null
+          entity_type: string
+          id?: never
+          snapshot?: Json | null
+          source?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          change_set_id?: string | null
+          created_at?: string
+          diff?: Json
+          entity_id?: string | null
+          entity_type?: string
+          id?: never
+          snapshot?: Json | null
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      change_sets: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          created_by: string
+          id: string
+          idempotency_key: string | null
+          kind: string
+          source: string
+          status: string
+          summary: Json
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          source?: string
+          status?: string
+          summary?: Json
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          source?: string
+          status?: string
+          summary?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coverage_inputs: {
+        Row: {
+          actual_value: number | null
+          created_at: string
+          cycle_end: string
+          cycle_start: string
+          id: string
+          input_type: string
+          metadata: Json
+          microarea: string
+          planned_days: number | null
+          product_id: string | null
+          source_import_id: string | null
+          target_value: number | null
+          user_id: string
+        }
+        Insert: {
+          actual_value?: number | null
+          created_at?: string
+          cycle_end: string
+          cycle_start: string
+          id?: string
+          input_type: string
+          metadata?: Json
+          microarea: string
+          planned_days?: number | null
+          product_id?: string | null
+          source_import_id?: string | null
+          target_value?: number | null
+          user_id: string
+        }
+        Update: {
+          actual_value?: number | null
+          created_at?: string
+          cycle_end?: string
+          cycle_start?: string
+          id?: string
+          input_type?: string
+          metadata?: Json
+          microarea?: string
+          planned_days?: number | null
+          product_id?: string | null
+          source_import_id?: string | null
+          target_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_inputs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coverage_inputs_source_import_id_fkey"
+            columns: ["source_import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_priorities: {
         Row: {
           content: string
@@ -192,6 +433,86 @@ export type Database = {
         }
         Relationships: []
       }
+      data_snapshots: {
+        Row: {
+          change_set_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          payload: Json
+          snapshot_type: string
+          user_id: string
+        }
+        Insert: {
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload: Json
+          snapshot_type: string
+          user_id: string
+        }
+        Update: {
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          payload?: Json
+          snapshot_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_snapshots_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_facilities: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          facility_id: string
+          notes: string
+          preferred_hours: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          facility_id: string
+          notes?: string
+          preferred_hours?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          facility_id?: string
+          notes?: string
+          preferred_hours?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_facilities_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_facilities_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "healthcare_facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctors: {
         Row: {
           address: string | null
@@ -199,16 +520,22 @@ export type Database = {
           c_client: boolean
           created_at: string
           current_visit_notes: string | null
+          external_id: string | null
+          external_source: string | null
           id: string
           k_client: boolean
           last_visit_date: string | null
           last_visit_notes: string | null
+          manual_fields: string[]
           microarea: string | null
           name: string
+          normalized_name: string | null
           office_hours: Json | null
           paese: string | null
           phone: string | null
+          source_updated_at: string | null
           specialty: string
+          sync_status: string
           target_class: string | null
           updated_at: string
           user_id: string
@@ -220,16 +547,22 @@ export type Database = {
           c_client?: boolean
           created_at?: string
           current_visit_notes?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           k_client?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
+          manual_fields?: string[]
           microarea?: string | null
           name: string
+          normalized_name?: string | null
           office_hours?: Json | null
           paese?: string | null
           phone?: string | null
+          source_updated_at?: string | null
           specialty?: string
+          sync_status?: string
           target_class?: string | null
           updated_at?: string
           user_id: string
@@ -241,20 +574,191 @@ export type Database = {
           c_client?: boolean
           created_at?: string
           current_visit_notes?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           k_client?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
+          manual_fields?: string[]
           microarea?: string | null
           name?: string
+          normalized_name?: string | null
           office_hours?: Json | null
           paese?: string | null
           phone?: string | null
+          source_updated_at?: string | null
           specialty?: string
+          sync_status?: string
           target_class?: string | null
           updated_at?: string
           user_id?: string
           visits?: number
+        }
+        Relationships: []
+      }
+      healthcare_facilities: {
+        Row: {
+          active: boolean
+          address: string
+          created_at: string
+          facility_type: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          microarea: string
+          name: string
+          notes: string
+          paese: string
+          preferred_hours: Json
+          structure_slot_enabled: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          facility_type: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          microarea?: string
+          name: string
+          notes?: string
+          paese?: string
+          preferred_hours?: Json
+          structure_slot_enabled?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          facility_type?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          microarea?: string
+          name?: string
+          notes?: string
+          paese?: string
+          preferred_hours?: Json
+          structure_slot_enabled?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      import_staging: {
+        Row: {
+          applied_at: string | null
+          classification: string
+          confidence: number | null
+          diff: Json
+          id: string
+          import_id: string
+          matched_doctor_id: string | null
+          normalized_data: Json
+          raw_data: Json
+          resolution: string | null
+          row_number: number
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          classification: string
+          confidence?: number | null
+          diff?: Json
+          id?: string
+          import_id: string
+          matched_doctor_id?: string | null
+          normalized_data: Json
+          raw_data: Json
+          resolution?: string | null
+          row_number: number
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          classification?: string
+          confidence?: number | null
+          diff?: Json
+          id?: string
+          import_id?: string
+          matched_doctor_id?: string | null
+          normalized_data?: Json
+          raw_data?: Json
+          resolution?: string | null
+          row_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_staging_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_staging_matched_doctor_id_fkey"
+            columns: ["matched_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imports: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          created_by: string
+          file_hash: string
+          file_name: string
+          id: string
+          import_type: string
+          mapping: Json
+          report: Json
+          source_name: string
+          status: string
+          storage_path: string
+          total_records: number
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string
+          file_hash: string
+          file_name: string
+          id?: string
+          import_type: string
+          mapping?: Json
+          report?: Json
+          source_name?: string
+          status?: string
+          storage_path: string
+          total_records?: number
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          created_by?: string
+          file_hash?: string
+          file_name?: string
+          id?: string
+          import_type?: string
+          mapping?: Json
+          report?: Json
+          source_name?: string
+          status?: string
+          storage_path?: string
+          total_records?: number
+          user_id?: string
         }
         Relationships: []
       }
@@ -557,6 +1061,156 @@ export type Database = {
         }
         Relationships: []
       }
+      visit_product_goals: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          doctor_id: string | null
+          id: string
+          patient_goal: number
+          priority: number
+          product_id: string
+          rationale: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_goal: number
+          priority?: number
+          product_id: string
+          rationale?: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          doctor_id?: string | null
+          id?: string
+          patient_goal?: number
+          priority?: number
+          product_id?: string
+          rationale?: string
+          user_id?: string
+          weekly_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_product_goals_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_product_goals_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_product_goals_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_product_goals_weekly_plan_id_fkey"
+            columns: ["weekly_plan_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_plan_days: {
+        Row: {
+          created_at: string
+          id: string
+          microarea: string
+          notes: string
+          plan_date: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          microarea: string
+          notes?: string
+          plan_date: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          microarea?: string
+          notes?: string
+          plan_date?: string
+          user_id?: string
+          weekly_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_plan_days_weekly_plan_id_fkey"
+            columns: ["weekly_plan_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      weekly_plans: {
+        Row: {
+          change_set_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          rationale: Json
+          status: string
+          updated_at: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          rationale?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          change_set_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          rationale?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_plans_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -578,12 +1232,38 @@ export type Database = {
           zona: string
         }[]
       }
+      apply_certain_doctor_import: {
+        Args: { p_idempotency_key: string; p_import_id: string }
+        Returns: Json
+      }
+      approve_weekly_plan: { Args: { p_plan_id: string }; Returns: number }
+      create_data_snapshot: {
+        Args: { p_change_set_id?: string; p_type?: string }
+        Returns: string
+      }
+      daily_sample_bag: {
+        Args: { p_date: string }
+        Returns: {
+          product_id: string
+          product_name: string
+          samples: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      jsonb_diff: { Args: { new_row: Json; old_row: Json }; Returns: Json }
+      restore_appointment: {
+        Args: { p_appointment_id: string }
+        Returns: undefined
+      }
+      soft_delete_appointment: {
+        Args: { p_appointment_id: string; p_reason: string }
+        Returns: undefined
       }
     }
     Enums: {
