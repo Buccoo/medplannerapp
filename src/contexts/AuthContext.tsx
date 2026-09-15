@@ -9,8 +9,8 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string, name: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, password: string, name: string, redirectPath?: string) => Promise<void>;
+  signInWithGoogle: (redirectPath?: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -42,21 +42,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signUpWithEmail = async (email: string, password: string, name: string) => {
+  const safePath = (p?: string) => (p && p.startsWith("/") && !p.startsWith("//") ? p : null);
+
+  const signUpWithEmail = async (email: string, password: string, name: string, redirectPath?: string) => {
+    const target = safePath(redirectPath);
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: name },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: window.location.origin + (target ?? ""),
       },
     });
     if (error) throw error;
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (redirectPath?: string) => {
+    const target = safePath(redirectPath);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/app",
+      redirect_uri: window.location.origin + (target ?? "/app"),
     });
     if (result.error) throw result.error;
   };

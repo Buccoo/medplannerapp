@@ -20,6 +20,7 @@ import Impostazioni from "./pages/app/Impostazioni";
 import AdminDashboard from "./pages/app/AdminDashboard";
 import Pianificazione from "./pages/app/Pianificazione";
 import NotFound from "./pages/NotFound";
+import OAuthConsent from "./pages/OAuthConsent";
 import Privacy from "./pages/Privacy";
 import Termini from "./pages/Termini";
 
@@ -39,6 +40,7 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/termini" element={<Termini />} />
+                <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
                 <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
                   <Route path="agenda" element={<Agenda />} />
