@@ -72,7 +72,7 @@ var read_agenda_default = defineTool({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Non autenticato" }], isError: true };
     }
-    let query = supabaseForUser(ctx).from("appointments").select("id,date,time,name,type,status,planning_status,address,paese,microarea,notes").is("deleted_at", null).order("date").order("time").limit(300);
+    let query = supabaseForUser(ctx).from("appointments").select("id,date,time,name,type,status,planning_status,address,paese,microarea,current_visit_notes").is("deleted_at", null).order("date").order("time").limit(300);
     if (from) query = query.gte("date", from);
     if (to) query = query.lte("date", to);
     const { data, error } = await query;

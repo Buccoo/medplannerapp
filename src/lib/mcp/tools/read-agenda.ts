@@ -17,7 +17,7 @@ export default defineTool({
     }
     let query = supabaseForUser(ctx)
       .from("appointments")
-      .select("id,date,time,name,type,status,planning_status,address,paese,microarea,notes")
+      .select("id,date,time,name,type,status,planning_status,address,paese,microarea,current_visit_notes")
       .is("deleted_at", null)
       .order("date")
       .order("time")
