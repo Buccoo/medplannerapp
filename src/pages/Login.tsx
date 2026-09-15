@@ -7,8 +7,15 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 
+function safeNext(value: string | null): string | null {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  return value;
+}
+
 export default function Login() {
   const [searchParams] = useSearchParams();
+  const next = safeNext(searchParams.get("next"));
   const [isRegister, setIsRegister] = useState(searchParams.get("mode") === "register");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
