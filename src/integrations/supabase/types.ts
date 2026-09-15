@@ -908,6 +908,45 @@ export type Database = {
         }
         Relationships: []
       }
+      mcp_access_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          last_used_at: string | null
+          name: string
+          revoked_at: string | null
+          scopes: string[]
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name: string
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash: string
+          token_prefix: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          name?: string
+          revoked_at?: string | null
+          scopes?: string[]
+          token_hash?: string
+          token_prefix?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       microarea_company_targets: {
         Row: {
           company_target: number
@@ -1436,6 +1475,15 @@ export type Database = {
         Args: { p_change_set_id?: string; p_type?: string }
         Returns: string
       }
+      create_mcp_access_token: {
+        Args: {
+          p_expires_at?: string
+          p_name: string
+          p_token_hash: string
+          p_token_prefix: string
+        }
+        Returns: string
+      }
       daily_sample_bag: {
         Args: { p_date: string }
         Returns: {
@@ -1456,6 +1504,22 @@ export type Database = {
         Returns: boolean
       }
       jsonb_diff: { Args: { new_row: Json; old_row: Json }; Returns: Json }
+      mcp_daily_sample_bag: {
+        Args: { p_date: string; p_user_id: string }
+        Returns: {
+          product_id: string
+          product_name: string
+          samples: number
+        }[]
+      }
+      mcp_generate_weekly_plan: {
+        Args: {
+          p_idempotency_key: string
+          p_user_id: string
+          p_week_start: string
+        }
+        Returns: Json
+      }
       resolve_import_row: {
         Args: { p_resolution: string; p_row_id: string }
         Returns: undefined
@@ -1465,6 +1529,10 @@ export type Database = {
         Returns: undefined
       }
       restore_change_set: { Args: { p_change_set_id: string }; Returns: Json }
+      revoke_mcp_access_token: {
+        Args: { p_token_id: string }
+        Returns: boolean
+      }
       soft_delete_appointment: {
         Args: { p_appointment_id: string; p_reason: string }
         Returns: undefined
