@@ -21,12 +21,7 @@ export type Database = {
           created_at: string
           current_visit_notes: string | null
           date: string
-          deleted_at: string | null
-          deleted_by: string | null
-          delete_reason: string | null
-          doctor_id: string | null
           id: string
-          is_locked: boolean
           last_visit_date: string | null
           last_visit_notes: string | null
           microarea: string | null
@@ -38,10 +33,6 @@ export type Database = {
           products: Json | null
           secretary_notes: string | null
           status: string
-          planning_status: string
-          locked_reason: string | null
-          source: string
-          change_set_id: string | null
           time: string
           type: string
           updated_at: string
@@ -53,12 +44,7 @@ export type Database = {
           created_at?: string
           current_visit_notes?: string | null
           date: string
-          deleted_at?: string | null
-          deleted_by?: string | null
-          delete_reason?: string | null
-          doctor_id?: string | null
           id?: string
-          is_locked?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
           microarea?: string | null
@@ -70,10 +56,6 @@ export type Database = {
           products?: Json | null
           secretary_notes?: string | null
           status?: string
-          planning_status?: string
-          locked_reason?: string | null
-          source?: string
-          change_set_id?: string | null
           time: string
           type?: string
           updated_at?: string
@@ -85,12 +67,7 @@ export type Database = {
           created_at?: string
           current_visit_notes?: string | null
           date?: string
-          deleted_at?: string | null
-          deleted_by?: string | null
-          delete_reason?: string | null
-          doctor_id?: string | null
           id?: string
-          is_locked?: boolean
           last_visit_date?: string | null
           last_visit_notes?: string | null
           microarea?: string | null
@@ -102,10 +79,6 @@ export type Database = {
           products?: Json | null
           secretary_notes?: string | null
           status?: string
-          planning_status?: string
-          locked_reason?: string | null
-          source?: string
-          change_set_id?: string | null
           time?: string
           type?: string
           updated_at?: string
@@ -589,14 +562,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_certain_doctor_import: {
-        Args: { p_import_id: string; p_idempotency_key: string }
-        Returns: Json
-      }
-      approve_weekly_plan: {
-        Args: { p_plan_id: string }
-        Returns: number
-      }
       admin_get_all_users: {
         Args: never
         Returns: {
@@ -619,22 +584,6 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
-      }
-      create_data_snapshot: {
-        Args: { p_type?: string; p_change_set_id?: string | null }
-        Returns: string
-      }
-      daily_sample_bag: {
-        Args: { p_date: string }
-        Returns: { product_id: string; product_name: string; samples: number }[]
-      }
-      restore_appointment: {
-        Args: { p_appointment_id: string }
-        Returns: undefined
-      }
-      soft_delete_appointment: {
-        Args: { p_appointment_id: string; p_reason: string }
-        Returns: undefined
       }
     }
     Enums: {
