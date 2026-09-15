@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Calendar, Target, Settings } from "lucide-react";
+import { Users, Calendar, Target, Settings, CalendarRange } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +61,11 @@ export default function Dashboard() {
           <Settings className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
+
+      <button onClick={() => navigate("/app/pianificazione")} className="w-full glass rounded-2xl p-4 shadow-soft mb-6 text-left flex items-center gap-3">
+        <span className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><CalendarRange className="h-5 w-5" /></span>
+        <span className="flex-1"><strong className="block">Piano settimanale</strong><span className="text-xs text-muted-foreground">Import, strutture, busta e protezione dati</span></span>
+      </button>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
         {stats.map((s, i) => (

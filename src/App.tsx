@@ -18,6 +18,7 @@ import Farmacie from "./pages/app/Farmacie";
 import Prodotti from "./pages/app/Prodotti";
 import Impostazioni from "./pages/app/Impostazioni";
 import AdminDashboard from "./pages/app/AdminDashboard";
+import Pianificazione from "./pages/app/Pianificazione";
 import NotFound from "./pages/NotFound";
 import Privacy from "./pages/Privacy";
 import Termini from "./pages/Termini";
@@ -44,6 +45,7 @@ const App = () => (
                   <Route path="medici" element={<Medici />} />
                   <Route path="farmacie" element={<Farmacie />} />
                   <Route path="prodotti" element={<Prodotti />} />
+                  <Route path="pianificazione" element={<Pianificazione />} />
                   <Route path="impostazioni" element={<Impostazioni />} />
                   <Route path="admin" element={<AdminDashboard />} />
                 </Route>

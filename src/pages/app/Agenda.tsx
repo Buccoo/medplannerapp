@@ -34,7 +34,7 @@ const dayNameMap: Record<number, string> = {
 import { useNavigate } from "react-router-dom";
 import type { Json, Database } from "@/integrations/supabase/types";
 
-type AppointmentStatus = "programmato" | "confermato" | "completato";
+type AppointmentStatus = "proposto" | "programmato" | "confermato" | "completato" | "annullato";
 type BookingSource = "Ambulatorio" | "WA" | "MioDottore";
 type DoctorRow = Database["public"]["Tables"]["doctors"]["Row"];
 const scheduleDays = ["Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì"];
@@ -58,20 +58,29 @@ type Appointment = {
   next_appointment_draft: string;
   products: { name: string; qty: number }[];
   order_file?: string | null;
+  planning_status: AppointmentStatus;
+  is_locked: boolean;
+  locked_reason?: string | null;
+  source: "manuale" | "importazione" | "ai" | "bulk";
+  doctor_id?: string | null;
 };
 
 const today = new Date();
 type ViewMode = "day" | "week" | "month";
 
 const statusColors: Record<AppointmentStatus, string> = {
+  proposto: "bg-secondary text-secondary-foreground",
   programmato: "bg-warning/10 text-warning",
   confermato: "bg-primary/10 text-primary",
   completato: "bg-success/10 text-success",
+  annullato: "bg-destructive/10 text-destructive",
 };
 const statusLabels: Record<AppointmentStatus, string> = {
+  proposto: "Proposto",
   programmato: "Programmato",
   confermato: "Confermato",
   completato: "Completato",
+  annullato: "Annullato",
 };
 
 export default function Agenda() {
@@ -155,13 +164,12 @@ export default function Agenda() {
 
   const fetchAppointments = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from("appointments").select("*").order("date").order("time");
+    const { data, error } = await supabase.from("appointments").select("*").is("deleted_at", null).order("date").order("time");
     if (error) { console.error(error); return; }
     setAppointments((data || []).map(a => ({
       ...a,
       date: parseISO(a.date),
       type: a.type as "medico" | "farmacia",
-      status: a.status as AppointmentStatus,
       phone: a.phone || "",
       address: a.address || "",
       paese: a.paese || "",
@@ -171,6 +179,10 @@ export default function Agenda() {
       secretary_notes: a.secretary_notes || "",
       next_appointment_draft: a.next_appointment_draft || "",
       products: (a.products as unknown as { name: string; qty: number }[]) || [],
+      planning_status: (a.planning_status || a.status) as AppointmentStatus,
+      status: (a.planning_status || a.status) as AppointmentStatus,
+      is_locked: a.is_locked || false,
+      source: (a.source || "manuale") as Appointment["source"],
     })));
     setLoading(false);
   };
@@ -277,10 +289,16 @@ export default function Agenda() {
       paese: fd.get("paese") as string || doctor?.paese || "",
       microarea: fd.get("microarea") as string || doctor?.microarea || "",
       booking_source: fd.get("source") as string || "Ambulatorio",
+      planning_status: "programmato",
+      is_locked: true,
+      locked_reason: "Creato manualmente",
+      source: "manuale",
     });
     if (error) { toast.error("Errore nel salvataggio"); return; }
     setAddOpen(false);
-    toast.success("Appuntamento aggiunto");
+    toast.success("Appuntamento aggiunto e protetto", {
+      action: { label: "Ricalcola giro", onClick: () => navigate("/app/pianificazione?tab=settimana") },
+    });
     fetchAppointments();
   };
 
@@ -299,6 +317,7 @@ export default function Agenda() {
       next_appointment_draft: updated.next_appointment_draft,
       products: JSON.parse(JSON.stringify(updated.products)),
       order_file: updated.order_file,
+      planning_status: updated.status,
     }).eq("id", updated.id);
     if (error) { toast.error("Errore"); return; }
     setDetailApp(updated);
@@ -306,7 +325,8 @@ export default function Agenda() {
   };
 
   const deleteAppointment = async (id: string) => {
-    await supabase.from("appointments").delete().eq("id", id);
+    const { error } = await supabase.rpc("soft_delete_appointment", { p_appointment_id: id, p_reason: "Eliminato manualmente dall’agenda" });
+    if (error) { toast.error(error.message); return; }
     setAppointments(prev => prev.filter(a => a.id !== id));
     setDetailApp(null);
     toast.success("Appuntamento eliminato");
@@ -409,6 +429,7 @@ export default function Agenda() {
         </p>
         <div className="flex items-center gap-2 mt-0.5">
           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 border-0 ${statusColors[a.status]}`}>{statusLabels[a.status]}</Badge>
+          {a.is_locked && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Protetto</Badge>}
           <span className="text-[10px] text-muted-foreground">{a.paese}</span>
           <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{a.booking_source}</span>
         </div>

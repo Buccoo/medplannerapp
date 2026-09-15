@@ -103,9 +103,9 @@ export default function Archivio() {
       if (dbErr) throw dbErr;
       toast.success("File caricato");
       load();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      toast.error(err?.message || "Errore upload");
+      toast.error(err instanceof Error ? err.message : "Errore upload");
     } finally { setUploading(false); }
   };
 

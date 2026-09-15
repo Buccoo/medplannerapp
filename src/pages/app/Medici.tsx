@@ -171,8 +171,8 @@ export default function Medici() {
       setAiOpen(false);
       setAiText("");
       toast.success(aiMode === "edit" ? "Campi aggiornati dall'AI — rivedi e salva" : "Dati compilati dall'AI!");
-    } catch (e: any) {
-      toast.error(e?.message || "Errore nell'analisi AI");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Errore nell'analisi AI");
     } finally {
       setAiLoading(false);
     }

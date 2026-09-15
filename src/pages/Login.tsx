@@ -35,8 +35,8 @@ export default function Login() {
         toast.success("Accesso effettuato!");
         navigate("/app");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Errore durante l'autenticazione");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Errore durante l'autenticazione");
     } finally {
       setIsLoading(false);
     }
@@ -45,8 +45,8 @@ export default function Login() {
   const handleGoogle = async () => {
     try {
       await signInWithGoogle();
-    } catch (err: any) {
-      toast.error(err.message || "Errore con Google Sign-In");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Errore con Google Sign-In");
     }
   };
 

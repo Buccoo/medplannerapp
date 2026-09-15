@@ -1,1 +1,4 @@
 project_id = "dxyogaxdzrdxvprnojny"
+
+[functions.planning-api]
+verify_jwt = true
