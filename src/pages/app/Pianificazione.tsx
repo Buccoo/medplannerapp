@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { addDays, format, startOfWeek } from "date-fns";
-import { Building2, CalendarRange, DatabaseBackup, PackageCheck, Upload, Undo2 } from "lucide-react";
+import { Building2, CalendarRange, Copy, DatabaseBackup, KeyRound, PackageCheck, Trash2, Upload, Undo2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { classifyDoctorRow, type DoctorImportRow } from "@/lib/importReconciliation";
+import { createMcpToken } from "@/lib/mcpToken";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ type PlannedAppointment = { id: string; date: string; time: string; name: string
 type Conflict = { id: string; severity: string; message: string; context: Record<string, string> };
 type ReviewRow = { id: string; row_number: number; classification: string; normalized_data: { name?: string; microarea?: string; paese?: string } };
 type ChangeSet = { id: string; kind: string; status: string; source: string; summary: Record<string, unknown>; created_at: string };
+type McpAccessToken = { id: string; name: string; token_prefix: string; scopes: string[]; expires_at: string | null; revoked_at: string | null; last_used_at: string | null; created_at: string };
 
 // Generated Supabase types are refreshed after remote migration; this page intentionally
 // uses a narrow escape hatch so the additive migration can ship in the same commit.
@@ -90,11 +92,13 @@ export default function Pianificazione() {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
   const [changeSets, setChangeSets] = useState<ChangeSet[]>([]);
+  const [mcpTokens, setMcpTokens] = useState<McpAccessToken[]>([]);
+  const [newMcpToken, setNewMcpToken] = useState<string | null>(null);
   const weekStart = useMemo(() => format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd"), []);
 
   const refresh = async () => {
     if (!user) return;
-    const [facilityResult, trashResult, auditResult, plansResult, appointmentsResult, conflictsResult, reviewResult, changesResult] = await Promise.all([
+    const [facilityResult, trashResult, auditResult, plansResult, appointmentsResult, conflictsResult, reviewResult, changesResult, mcpTokensResult] = await Promise.all([
       planningDb.from("healthcare_facilities").select("id,name,facility_type,microarea,paese,address,active").order("name"),
       planningDb.from("appointments").select("id,date,time,name,delete_reason").not("deleted_at", "is", null).order("deleted_at", { ascending: false }),
       planningDb.from("audit_log").select("id,entity_type,action,source,created_at").order("created_at", { ascending: false }).limit(30),
@@ -103,6 +107,7 @@ export default function Pianificazione() {
       planningDb.from("plan_conflicts").select("id,severity,message,context").is("resolved_at", null).order("created_at", { ascending: false }),
       planningDb.from("import_staging").select("id,row_number,classification,normalized_data").in("classification", ["possibile_duplicato", "incompleto_ambiguo"]).is("applied_at", null).order("created_at", { ascending: false }).limit(50),
       planningDb.from("change_sets").select("id,kind,status,source,summary,created_at").order("created_at", { ascending: false }).limit(30),
+      planningDb.from("mcp_access_tokens").select("id,name,token_prefix,scopes,expires_at,revoked_at,last_used_at,created_at").order("created_at", { ascending: false }),
     ]);
     setFacilities(facilityResult.data || []);
     setTrash(trashResult.data || []);
@@ -112,6 +117,7 @@ export default function Pianificazione() {
     setConflicts(conflictsResult.data || []);
     setReviewRows(reviewResult.data || []);
     setChangeSets(changesResult.data || []);
+    setMcpTokens(mcpTokensResult.data || []);
   };
 
   useEffect(() => { refresh(); }, [user]);
@@ -272,6 +278,34 @@ export default function Pianificazione() {
     setBag(data || []);
   };
 
+  const issueMcpToken = async () => {
+    const credential = await createMcpToken();
+    const { error } = await planningDb.rpc("create_mcp_access_token", {
+      p_name: "Codex desktop",
+      p_token_hash: credential.hash,
+      p_token_prefix: credential.prefix,
+      p_expires_at: null,
+    });
+    if (error) return toast.error(error.message);
+    setNewMcpToken(credential.token);
+    toast.success("Token MCP creato: copialo ora, sarà mostrato una sola volta");
+    refresh();
+  };
+
+  const revokeMcpToken = async (id: string) => {
+    const { error } = await planningDb.rpc("revoke_mcp_access_token", { p_token_id: id });
+    if (error) return toast.error(error.message);
+    toast.success("Accesso MCP revocato");
+    refresh();
+  };
+
+  const copyText = async (value: string, label: string) => {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copiato`);
+  };
+
+  const mcpUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/medplanner-mcp`;
+
   return (
     <div className="px-4 pt-5 pb-24 max-w-4xl mx-auto">
       <div className="mb-5">
@@ -333,6 +367,18 @@ export default function Pianificazione() {
         </TabsContent>
 
         <TabsContent value="sicurezza" className="space-y-4">
+          <section className="glass rounded-2xl p-4 shadow-soft">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex gap-2"><KeyRound className="h-5 w-5 text-primary mt-0.5" /><div><h2 className="font-semibold">Collega Codex / ChatGPT tramite MCP</h2><p className="text-xs text-muted-foreground mt-1">Accesso personale revocabile: lettura dati e creazione di sole proposte. Nessuna cancellazione o approvazione automatica.</p></div></div>
+              <Button size="sm" onClick={issueMcpToken}>Nuovo token</Button>
+            </div>
+            <div className="mt-3 rounded-xl bg-secondary p-3 text-xs">
+              <div className="flex items-center justify-between gap-2"><code className="break-all">{mcpUrl}</code><Button size="icon" variant="ghost" onClick={() => copyText(mcpUrl, "URL")} aria-label="Copia URL MCP"><Copy className="h-4 w-4" /></Button></div>
+            </div>
+            {newMcpToken && <div className="mt-3 rounded-xl border border-warning bg-warning/10 p-3"><strong className="text-xs text-warning">Copialo adesso: non sarà più visualizzato.</strong><div className="mt-2 flex items-center gap-2"><code className="text-xs break-all flex-1">{newMcpToken}</code><Button size="icon" variant="outline" onClick={() => copyText(newMcpToken, "Token")} aria-label="Copia token"><Copy className="h-4 w-4" /></Button></div><Button className="mt-2" size="sm" variant="ghost" onClick={() => setNewMcpToken(null)}>Ho salvato il token</Button></div>}
+            <p className="text-xs text-muted-foreground mt-3">In Codex: Impostazioni → MCP Servers → Add. Inserisci l’URL qui sopra e il token come Bearer token.</p>
+            <div className="mt-3 space-y-2">{mcpTokens.map((token) => <div key={token.id} className="flex items-center justify-between gap-2 border-t pt-2 text-xs"><div><strong>{token.name}</strong> · <code>{token.token_prefix}…</code><div className="text-muted-foreground">{token.revoked_at ? "Revocato" : token.last_used_at ? `Usato ${new Date(token.last_used_at).toLocaleString("it-IT")}` : "Mai usato"}</div></div>{!token.revoked_at && <Button size="icon" variant="ghost" onClick={() => revokeMcpToken(token.id)} aria-label="Revoca token"><Trash2 className="h-4 w-4" /></Button>}</div>)}</div>
+          </section>
           <section className="glass rounded-2xl p-4 shadow-soft"><div className="flex justify-between items-center"><div className="flex items-center gap-2"><DatabaseBackup className="h-5 w-5 text-primary" /><div><h2 className="font-semibold">Backup</h2><p className="text-xs text-muted-foreground">Snapshot privato di medici, appuntamenti, prodotti, target e impostazioni.</p></div></div><Button size="sm" onClick={snapshot}>Crea</Button></div></section>
           <section className="glass rounded-2xl p-4 shadow-soft"><h2 className="font-semibold mb-3">Cestino appuntamenti</h2><div className="space-y-2">{trash.map((appointment) => <div key={appointment.id} className="flex items-center justify-between gap-2 rounded-xl bg-secondary p-3 text-sm"><div><strong>{appointment.name}</strong><p className="text-xs text-muted-foreground">{appointment.date} · {appointment.time} · {appointment.delete_reason || "Nessun motivo"}</p></div><Button size="icon" variant="outline" onClick={() => restore(appointment.id)} aria-label="Ripristina"><Undo2 className="h-4 w-4" /></Button></div>)}{!trash.length && <p className="text-xs text-muted-foreground">Il cestino è vuoto.</p>}</div></section>
           <section className="glass rounded-2xl p-4 shadow-soft"><h2 className="font-semibold mb-3">Audit recente</h2><div className="space-y-2 max-h-72 overflow-auto">{audit.map((entry) => <div key={entry.id} className="flex justify-between text-xs border-b pb-2"><span>{entry.entity_type} · {entry.action} · {entry.source}</span><time className="text-muted-foreground">{new Date(entry.created_at).toLocaleString("it-IT")}</time></div>)}</div></section>
