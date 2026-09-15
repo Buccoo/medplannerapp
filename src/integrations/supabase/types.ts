@@ -304,6 +304,50 @@ export type Database = {
           },
         ]
       }
+      change_set_items: {
+        Row: {
+          action: string
+          change_set_id: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: number
+          new_values: Json | null
+          old_values: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          change_set_id: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: never
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          change_set_id?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: never
+          new_values?: Json | null
+          old_values?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "change_set_items_change_set_id_fkey"
+            columns: ["change_set_id"]
+            isOneToOne: false
+            referencedRelation: "change_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       change_sets: {
         Row: {
           applied_at: string | null
@@ -342,6 +386,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      coverage_import_staging: {
+        Row: {
+          applied_at: string | null
+          classification: string
+          error_message: string | null
+          id: string
+          import_id: string
+          normalized_data: Json
+          raw_data: Json
+          row_number: number
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          classification: string
+          error_message?: string | null
+          id?: string
+          import_id: string
+          normalized_data: Json
+          raw_data: Json
+          row_number: number
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          classification?: string
+          error_message?: string | null
+          id?: string
+          import_id?: string
+          normalized_data?: Json
+          raw_data?: Json
+          row_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coverage_import_staging_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       coverage_inputs: {
         Row: {
@@ -509,6 +597,64 @@ export type Database = {
             columns: ["facility_id"]
             isOneToOne: false
             referencedRelation: "healthcare_facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_product_rules: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          patient_goal: number
+          priority: number
+          product_id: string
+          rationale: string
+          source_import_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          patient_goal?: number
+          priority?: number
+          product_id: string
+          rationale?: string
+          source_import_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          patient_goal?: number
+          priority?: number
+          product_id?: string
+          rationale?: string
+          source_import_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_product_rules_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_product_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_product_rules_source_import_id_fkey"
+            columns: ["source_import_id"]
+            isOneToOne: false
+            referencedRelation: "imports"
             referencedColumns: ["id"]
           },
         ]
@@ -908,6 +1054,50 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_conflicts: {
+        Row: {
+          conflict_type: string
+          context: Json
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          severity: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Insert: {
+          conflict_type: string
+          context?: Json
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          severity?: string
+          user_id: string
+          weekly_plan_id: string
+        }
+        Update: {
+          conflict_type?: string
+          context?: Json
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          severity?: string
+          user_id?: string
+          weekly_plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_conflicts_weekly_plan_id_fkey"
+            columns: ["weekly_plan_id"]
+            isOneToOne: false
+            referencedRelation: "weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           company_forecast: number
@@ -1236,7 +1426,12 @@ export type Database = {
         Args: { p_idempotency_key: string; p_import_id: string }
         Returns: Json
       }
+      apply_coverage_import: {
+        Args: { p_idempotency_key: string; p_import_id: string }
+        Returns: Json
+      }
       approve_weekly_plan: { Args: { p_plan_id: string }; Returns: number }
+      create_daily_snapshots_all_users: { Args: never; Returns: number }
       create_data_snapshot: {
         Args: { p_change_set_id?: string; p_type?: string }
         Returns: string
@@ -1249,6 +1444,10 @@ export type Database = {
           samples: number
         }[]
       }
+      generate_weekly_plan: {
+        Args: { p_idempotency_key: string; p_week_start: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1257,10 +1456,15 @@ export type Database = {
         Returns: boolean
       }
       jsonb_diff: { Args: { new_row: Json; old_row: Json }; Returns: Json }
+      resolve_import_row: {
+        Args: { p_resolution: string; p_row_id: string }
+        Returns: undefined
+      }
       restore_appointment: {
         Args: { p_appointment_id: string }
         Returns: undefined
       }
+      restore_change_set: { Args: { p_change_set_id: string }; Returns: Json }
       soft_delete_appointment: {
         Args: { p_appointment_id: string; p_reason: string }
         Returns: undefined
