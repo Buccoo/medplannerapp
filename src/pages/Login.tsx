@@ -26,6 +26,10 @@ export default function Login() {
 
   // Redirect if already logged in
   if (user) {
+    if (next) {
+      window.location.replace(next);
+      return null;
+    }
     navigate("/app", { replace: true });
     return null;
   }
@@ -35,12 +39,13 @@ export default function Login() {
     setIsLoading(true);
     try {
       if (isRegister) {
-        await signUpWithEmail(email, password, name);
+        await signUpWithEmail(email, password, name, next ?? undefined);
         toast.success("Registrazione completata! Controlla la tua email per confermare.");
       } else {
         await signInWithEmail(email, password);
         toast.success("Accesso effettuato!");
-        navigate("/app");
+        if (next) window.location.replace(next);
+        else navigate("/app");
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Errore durante l'autenticazione");
@@ -51,7 +56,7 @@ export default function Login() {
 
   const handleGoogle = async () => {
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(next ?? undefined);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Errore con Google Sign-In");
     }
