@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import OAuthConsent from "./pages/OAuthConsent";
 import Privacy from "./pages/Privacy";
 import Termini from "./pages/Termini";
+import Articoli from "./pages/Articoli";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/termini" element={<Termini />} />
                 <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+                <Route path="/articoli" element={<Articoli />} />
                 <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route index element={<Dashboard />} />
                   <Route path="agenda" element={<Agenda />} />

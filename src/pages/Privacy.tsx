@@ -17,9 +17,10 @@ const Privacy = () => {
           <section>
             <h2 className="text-xl font-semibold mb-3">1. Titolare del Trattamento</h2>
             <p className="text-muted-foreground">
-              Il Titolare del trattamento dei dati personali è il gestore dell'applicazione MedPlanner 
-              (di seguito "Titolare"). Per qualsiasi richiesta relativa al trattamento dei dati personali, 
-              è possibile contattare il Titolare all'indirizzo email: <strong>privacy@medplannerapp.com</strong>.
+              Il Titolare del trattamento dei dati personali è il gestore dell'applicazione MedPlanner,{" "}
+              <strong>Buccoliero Gianluca</strong> (Partita IVA: 03470330733, di seguito "Titolare"). Per qualsiasi richiesta
+              relativa al trattamento dei dati personali, è possibile contattare il Titolare all'indirizzo email:{" "}
+              <strong>privacy@medplannerapp.com</strong>.
             </p>
           </section>
 
@@ -124,7 +125,22 @@ const Privacy = () => {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-3">11. Modifiche all'Informativa</h2>
+            <h2 className="text-xl font-semibold mb-3">
+              11. Trasparenza sull'Intelligenza Artificiale (Art. 50 Regolamento UE 2024/1689 – AI Act)
+            </h2>
+            <p className="text-muted-foreground">
+              Ai sensi dell'Articolo 50 del Regolamento (UE) 2024/1689 (AI Act), informiamo gli utenti che alcuni
+              contenuti editoriali, guide informative o funzionalità di supporto presenti su MedPlanner possono essere
+              redatti o ottimizzati con l'ausilio di sistemi di intelligenza artificiale generativa, sempre sottoposti a
+              revisione e validazione umana da parte del team editoriale e tecnico. I dati professionali inseriti
+              dall'Utente nell'applicazione non vengono ceduti né impiegati per l'addestramento di modelli pubblici di
+              intelligenza artificiale, e nessun sistema di IA ad alto rischio viene utilizzato per decisioni
+              automatizzate che producano effetti giuridici sugli utenti.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold mb-3">12. Modifiche all'Informativa</h2>
             <p className="text-muted-foreground">
               Ci riserviamo il diritto di modificare la presente informativa. Le modifiche saranno pubblicate su questa pagina 
               con indicazione della data di ultimo aggiornamento. In caso di modifiche sostanziali, l'utente sarà informato 
@@ -132,6 +148,20 @@ const Privacy = () => {
             </p>
           </section>
         </div>
+
+        <footer className="mt-12 pt-6 border-t border-border text-center text-xs text-muted-foreground space-y-2">
+          <p>© {new Date().getFullYear()} MedPlanner. Tutti i diritti riservati.</p>
+          <a
+            href="https://tattica.online"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <span>Powered by:</span>
+            <span aria-hidden="true" className="text-sm leading-none">♞</span>
+            <span className="font-semibold">tattica.online</span>
+          </a>
+        </footer>
       </div>
     </div>
   );

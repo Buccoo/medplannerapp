@@ -1,0 +1,35 @@
+# MedPlanner (ISF Planner)
+
+> MedPlanner è l'assistente digitale e CRM cloud progettato specificamente per l'Informatore Scientifico del Farmaco (ISF) e gli agenti del settore farmaceutico e parafarmaceutico in Italia.
+
+## Funzionalità Principali
+
+- **Agenda Smart ISF**: pianificazione giornaliera e settimanale delle visite mediche e degli appuntamenti in studio, ospedale o farmacia.
+- **Rubrica e Schedario Medici**: gestione strutturata del portfolio medici con specializzazione, orari di ricevimento, indirizzo ambulatorio, storico colloqui e note riservate.
+- **Gestione Farmacie**: anagrafica farmacie della zona assegnata, referenti, ordini e sell-in/sell-out.
+- **Catalogo Prodotti e Target**: monitoraggio degli obiettivi di vendita, campioni gratuiti e performance per linea terapeutica.
+- **Dashboard Analitica**: panoramica istantanea su copertura schedario, frequenza visite e avanzamento target.
+- **Sicurezza e Sincronizzazione Cloud**: accesso multi-dispositivo (smartphone, tablet, desktop) con crittografia e isolamento dati GDPR-compliant.
+
+## Approfondimenti per Informatori Scientifici del Farmaco
+
+- **Articoli e Guide ISF**: https://medplannerapp.com/articoli
+  1. *Organizzazione del Lavoro per l'Informatore Scientifico del Farmaco (ISF): Come Pianificare Visite Mediche e Giro Visite in Modo Efficiente*
+  2. *Gestione Schedario Medici e Farmacie per ISF: Strategie di Segmentazione del Portfolio e Monitoraggio degli Obiettivi di Vendita*
+  3. *Digitalizzazione dell'Informazione Scientifica del Farmaco: Vantaggi di un'Agenda Cloud e CRM Dedicato Rispetto ai Fogli di Calcolo*
+
+## Informazioni Tecniche e Contatti
+
+- Sviluppato da: Gianluca Buccoliero — Tattica.online (https://tattica.online)
+- Partita IVA: 03470330733
+- Sito Web: https://medplannerapp.com/
+- Supporto: supporto@medplannerapp.com
+- Privacy: privacy@medplannerapp.com
+- Lingua: italiano
+
+## Pagine Pubbliche
+
+- Landing Page: https://medplannerapp.com/
+- Articoli e Guide per ISF: https://medplannerapp.com/articoli
+- Informativa Privacy e Trasparenza AI Act: https://medplannerapp.com/privacy
+- Termini e Condizioni: https://medplannerapp.com/termini

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, Package, ChevronRight, BarChart3, Shield } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -96,20 +96,28 @@ export default function Landing() {
       <footer className="border-t border-border px-6 py-6 text-center text-xs text-muted-foreground">
         <div className="mx-auto max-w-3xl space-y-3">
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <a href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <span>·</span>
-            <a href="/termini" className="hover:text-foreground transition-colors">Termini e Condizioni</a>
+            <Link to="/termini" className="hover:text-foreground transition-colors">Termini e Condizioni</Link>
+            <span>·</span>
+            <Link to="/articoli" className="text-muted-foreground/70 hover:text-foreground transition-colors">Articoli</Link>
           </div>
           <p className="text-muted-foreground/70">
             BUCCOLIERO GIANLUCA — Partita IVA: 03470330733
           </p>
-          <p>© 2026 MedPlanner. Tutti i diritti riservati.</p>
-          <p>
-            Powered by{" "}
-            <a href="https://tattica.online" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">
-              tattica.online
+          <p>© {new Date().getFullYear()} MedPlanner. Tutti i diritti riservati.</p>
+          <div>
+            <a
+              href="https://tattica.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <span>Powered by:</span>
+              <span aria-hidden="true" className="text-sm leading-none">♞</span>
+              <span className="font-semibold">tattica.online</span>
             </a>
-          </p>
+          </div>
         </div>
       </footer>
     </div>

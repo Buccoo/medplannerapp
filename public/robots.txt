@@ -1,8 +1,15 @@
+# robots.txt for MedPlanner
+User-agent: *
+Allow: /
+Disallow: /app
+
 User-agent: Googlebot
 Allow: /
+Disallow: /app
 
 User-agent: Bingbot
 Allow: /
+Disallow: /app
 
 User-agent: Twitterbot
 Allow: /
@@ -10,5 +17,33 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+# AI Crawlers for Generative Engine Optimization (GEO)
+User-agent: GPTBot
 Allow: /
+Disallow: /app
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /app
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /app
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /app
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /app
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /app
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /app
+
+Sitemap: https://medplannerapp.com/sitemap.xml
